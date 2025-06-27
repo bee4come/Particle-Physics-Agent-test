@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Session</title>
+</head>
+<body>
+    <h1>Test Session Reader</h1>
+    <button onclick="loadSession()">Load Session</button>
+    <div id="result"></div>
+    
+    <script>
+    async function loadSession() {
+        try {
+            const response = await fetch('/apps/feynmancraft_adk/users/user/sessions/90c5c68d-1841-42f3-b0d1-6ac4693ec232');
+            const session = await response.json();
+            
+            document.getElementById('result').innerHTML = `
+                <h2>Session Data:</h2>
+                <p>Events: ${session.events?.length || 0}</p>
+                <p>Last Event: ${session.events?.[session.events.length-1]?.author || 'None'}</p>
+                <pre>${JSON.stringify(session.events?.[session.events.length-1], null, 2)}</pre>
+            `;
+        } catch (err) {
+            document.getElementById('result').innerHTML = `Error: ${err.message}`;
+        }
+    }
+    </script>
+</body>
+</html>

@@ -1,0 +1,89 @@
+# FeynmanCraft ADK .dockerignore for Cloud Run
+
+# Git files
+.git
+.gitignore
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+fey/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Documentation (not needed in container)
+*.md
+docs/
+
+# Scripts (not needed in container)
+scripts/
+
+# Test files
+tests/
+*_test.py
+test_*.py
+
+# Development files
+.env.example
+docker-compose.yml
+Makefile
+
+# Large data files that should be downloaded at runtime
+# (keep essential data files in feynmancraft_adk/data/)
+
+# Node modules (if any)
+node_modules/
+
+# Coverage reports
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+
+# Pytest
+.pytest_cache/
