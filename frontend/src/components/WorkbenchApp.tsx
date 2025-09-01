@@ -276,6 +276,10 @@ function WorkbenchAppContent() {
             activeTab={workbenchState.rightPanel}
             onTabChange={(tab) => setWorkbenchState(prev => ({ ...prev, rightPanel: tab }))}
             agentEvents={agentEvents}
+            processedEvents={processedEvents}
+            isLoading={isLoading}
+            error={error}
+            messages={messages}
             logs={logs}
             versions={versions}
           />

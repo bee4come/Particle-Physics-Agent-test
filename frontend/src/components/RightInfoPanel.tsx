@@ -12,12 +12,15 @@ import {
   Clock
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { LiveProgressTracker } from './agent-visualization/LiveProgressTracker';
+import { AgentCollaborationGraph } from './agent-visualization/AgentCollaborationGraph';
+import { useAgentProgress } from './agent-visualization/useAgentProgress';
 
 export interface RightInfoPanelProps {
   activeTab: 'agents' | 'logs' | 'versions';
   onTabChange: (tab: 'agents' | 'logs' | 'versions') => void;
   
-  // Agent data
+  // Agent data - 支持新的LiveProgressTracker数据格式
   agentEvents?: Array<{
     id: string;
     title: string;
@@ -27,6 +30,18 @@ export interface RightInfoPanelProps {
     data: string;
     details?: string;
   }>;
+  
+  // 新增：用于LiveProgressTracker的数据 (来自useADKFinal)
+  processedEvents?: Array<{
+    title: string;
+    author: string;
+    timestamp: number;
+    data?: any;
+    details?: string;
+  }>;
+  isLoading?: boolean;
+  error?: string | null;
+  messages?: any[];
   
   // Log data
   logs?: Array<{
@@ -53,10 +68,22 @@ export function RightInfoPanel({
   activeTab,
   onTabChange,
   agentEvents = [],
+  processedEvents = [],
+  isLoading = false,
+  error = null,
+  messages = [],
   logs = [],
   versions = [],
   className
 }: RightInfoPanelProps) {
+  
+  // 使用新的智能体进度钩子
+  const agentProgress = useAgentProgress({
+    processedEvents,
+    isLoading,
+    error,
+    messages
+  });
   
   const formatTimestamp = (timestamp: number) => {
     return new Date(timestamp).toLocaleTimeString();
@@ -133,67 +160,32 @@ export function RightInfoPanel({
 
         {/* Tab Content */}
         <div className="flex-1 overflow-hidden">
-          {/* Agents Tab */}
+          {/* Agents Tab - Agent Visualization */}
           <TabsContent value="agents" className="h-full m-0 p-0">
             <ScrollArea className="h-full">
-              <div className="p-4 space-y-3">
-                {agentEvents.length > 0 ? (
-                  agentEvents.map((event) => (
-                    <div
-                      key={event.id}
-                      className="p-3 rounded-lg bg-neutral-800 border border-neutral-700 space-y-2"
-                    >
-                      {/* Agent Header */}
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          {getStatusIcon(event.status)}
-                          <span className="text-sm font-medium text-neutral-200">
-                            {event.title}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-1 text-xs text-neutral-400">
-                          <Clock className="h-3 w-3" />
-                          {formatTimestamp(event.timestamp)}
-                        </div>
-                      </div>
-
-                      {/* Progress Bar */}
-                      {event.status === 'processing' && (
-                        <div className="space-y-1">
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="text-neutral-400">Progress</span>
-                            <span className="text-neutral-300">{event.progress}%</span>
-                          </div>
-                          <div className="w-full bg-neutral-700 rounded-full h-1.5">
-                            <div 
-                              className="h-1.5 bg-blue-500 rounded-full transition-all duration-500"
-                              style={{ width: `${event.progress}%` }}
-                            />
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Agent Description */}
-                      <p className="text-sm text-neutral-300">
-                        {event.data}
-                      </p>
-
-                      {/* Details */}
-                      {event.details && (
-                        <div className="text-xs text-neutral-400 bg-neutral-900 p-2 rounded border">
-                          {event.details.length > 150 
-                            ? `${event.details.substring(0, 150)}...` 
-                            : event.details
-                          }
-                        </div>
-                      )}
-                    </div>
-                  ))
-                ) : (
-                  <div className="flex items-center justify-center h-32 text-neutral-500">
+              <div className="p-4 space-y-6">
+                {/* Agent Collaboration Network Graph */}
+                <AgentCollaborationGraph
+                  agents={agentProgress.agentStatuses}
+                  isActive={agentProgress.isActive}
+                  className="text-neutral-100"
+                />
+                
+                {/* Live Progress Tracker */}
+                <LiveProgressTracker
+                  agents={agentProgress.agentStatuses}
+                  isActive={agentProgress.isActive}
+                  totalProcessingTime={agentProgress.totalProcessingTime}
+                  className="text-neutral-100"
+                />
+                
+                {/* Empty state for no activity */}
+                {processedEvents.length === 0 && agentEvents.length === 0 && (
+                  <div className="flex items-center justify-center h-32 text-neutral-500 mt-6">
                     <div className="text-center space-y-2">
                       <Users className="h-8 w-8 mx-auto opacity-50" />
                       <p className="text-sm">No agent activity yet</p>
+                      <p className="text-xs">Start a diagram generation to see agent collaboration</p>
                     </div>
                   </div>
                 )}
