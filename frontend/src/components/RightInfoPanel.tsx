@@ -14,6 +14,7 @@ import {
 import { cn } from '@/lib/utils';
 import { LiveProgressTracker } from './agent-visualization/LiveProgressTracker';
 import { AgentCollaborationGraph } from './agent-visualization/AgentCollaborationGraph';
+import { DataFlowVisualizer } from './agent-visualization/DataFlowVisualizer';
 import { useAgentProgress } from './agent-visualization/useAgentProgress';
 
 export interface RightInfoPanelProps {
@@ -176,6 +177,13 @@ export function RightInfoPanel({
                   agents={agentProgress.agentStatuses}
                   isActive={agentProgress.isActive}
                   totalProcessingTime={agentProgress.totalProcessingTime}
+                  className="text-neutral-100"
+                />
+
+                {/* Data Flow Visualizer */}
+                <DataFlowVisualizer
+                  agents={agentProgress.agentStatuses}
+                  isActive={agentProgress.isActive}
                   className="text-neutral-100"
                 />
                 
