@@ -10,7 +10,8 @@ import {
   AlertCircle,
   CheckCircle,
   Clock,
-  RotateCcw
+  RotateCcw,
+  Zap
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { LiveProgressTracker } from './agent-visualization/LiveProgressTracker';
@@ -18,10 +19,11 @@ import { AgentCollaborationGraph } from './agent-visualization/AgentCollaboratio
 import { DataFlowVisualizer } from './agent-visualization/DataFlowVisualizer';
 import { useAgentProgress } from './agent-visualization/useAgentProgress';
 import { ErrorRecoveryDashboard } from './error-recovery/ErrorRecoveryDashboard';
+import { AutomationHooksDashboard } from './automation-hooks/AutomationHooksDashboard';
 
 export interface RightInfoPanelProps {
-  activeTab: 'agents' | 'logs' | 'versions' | 'recovery';
-  onTabChange: (tab: 'agents' | 'logs' | 'versions' | 'recovery') => void;
+  activeTab: 'agents' | 'logs' | 'versions' | 'recovery' | 'automation';
+  onTabChange: (tab: 'agents' | 'logs' | 'versions' | 'recovery' | 'automation') => void;
   
   // Agent data - 支持新的LiveProgressTracker数据格式
   agentEvents?: Array<{
@@ -118,10 +120,10 @@ export function RightInfoPanel({
 
   return (
     <div className={cn("flex flex-col h-full bg-neutral-900", className)}>
-      <Tabs value={activeTab} onValueChange={(value) => onTabChange(value as 'agents' | 'logs' | 'versions' | 'recovery')} className="flex flex-col h-full">
+      <Tabs value={activeTab} onValueChange={(value) => onTabChange(value as 'agents' | 'logs' | 'versions' | 'recovery' | 'automation')} className="flex flex-col h-full">
         {/* Tab Headers */}
         <div className="flex-shrink-0 border-b border-neutral-800 px-4 py-2">
-          <TabsList className="grid w-full grid-cols-4 bg-neutral-800">
+          <TabsList className="grid w-full grid-cols-5 bg-neutral-800">
             <TabsTrigger 
               value="agents" 
               className="flex items-center gap-2 data-[state=active]:bg-neutral-700"
@@ -164,6 +166,13 @@ export function RightInfoPanel({
             >
               <RotateCcw className="h-4 w-4" />
               <span className="hidden sm:inline">Recovery</span>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="automation" 
+              className="flex items-center gap-2 data-[state=active]:bg-neutral-700"
+            >
+              <Zap className="h-4 w-4" />
+              <span className="hidden sm:inline">Automation</span>
             </TabsTrigger>
           </TabsList>
         </div>
@@ -317,6 +326,18 @@ export function RightInfoPanel({
             <ScrollArea className="h-full">
               <div className="p-4">
                 <ErrorRecoveryDashboard 
+                  isActive={isLoading}
+                  className="text-neutral-100"
+                />
+              </div>
+            </ScrollArea>
+          </TabsContent>
+
+          {/* Automation Tab */}
+          <TabsContent value="automation" className="h-full m-0 p-0">
+            <ScrollArea className="h-full">
+              <div className="p-4">
+                <AutomationHooksDashboard 
                   isActive={isLoading}
                   className="text-neutral-100"
                 />
