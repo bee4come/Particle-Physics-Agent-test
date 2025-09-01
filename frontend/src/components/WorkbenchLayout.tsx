@@ -21,7 +21,7 @@ export interface JobState {
 export interface WorkbenchState {
   layout: 'desktop' | 'tablet' | 'mobile';
   activeTab: 'preview' | 'tikz' | 'latex' | 'diff';
-  rightPanel: 'agents' | 'logs' | 'versions' | 'recovery' | 'automation';
+  rightPanel: 'agents' | 'logs' | 'versions' | 'recovery' | 'automation' | 'mcp';
   isRightPanelCollapsed: boolean;
   isLeftPanelCollapsed: boolean;
   jobState: JobState;

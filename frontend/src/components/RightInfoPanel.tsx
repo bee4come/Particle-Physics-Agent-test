@@ -11,7 +11,8 @@ import {
   CheckCircle,
   Clock,
   RotateCcw,
-  Zap
+  Zap,
+  Server
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { LiveProgressTracker } from './agent-visualization/LiveProgressTracker';
@@ -20,10 +21,11 @@ import { DataFlowVisualizer } from './agent-visualization/DataFlowVisualizer';
 import { useAgentProgress } from './agent-visualization/useAgentProgress';
 import { ErrorRecoveryDashboard } from './error-recovery/ErrorRecoveryDashboard';
 import { AutomationHooksDashboard } from './automation-hooks/AutomationHooksDashboard';
+import { MCPIntegrationDashboard } from './mcp-integration/MCPIntegrationDashboard';
 
 export interface RightInfoPanelProps {
-  activeTab: 'agents' | 'logs' | 'versions' | 'recovery' | 'automation';
-  onTabChange: (tab: 'agents' | 'logs' | 'versions' | 'recovery' | 'automation') => void;
+  activeTab: 'agents' | 'logs' | 'versions' | 'recovery' | 'automation' | 'mcp';
+  onTabChange: (tab: 'agents' | 'logs' | 'versions' | 'recovery' | 'automation' | 'mcp') => void;
   
   // Agent data - 支持新的LiveProgressTracker数据格式
   agentEvents?: Array<{
@@ -120,10 +122,10 @@ export function RightInfoPanel({
 
   return (
     <div className={cn("flex flex-col h-full bg-neutral-900", className)}>
-      <Tabs value={activeTab} onValueChange={(value) => onTabChange(value as 'agents' | 'logs' | 'versions' | 'recovery' | 'automation')} className="flex flex-col h-full">
+      <Tabs value={activeTab} onValueChange={(value) => onTabChange(value as 'agents' | 'logs' | 'versions' | 'recovery' | 'automation' | 'mcp')} className="flex flex-col h-full">
         {/* Tab Headers */}
         <div className="flex-shrink-0 border-b border-neutral-800 px-4 py-2">
-          <TabsList className="grid w-full grid-cols-5 bg-neutral-800">
+          <TabsList className="grid w-full grid-cols-6 bg-neutral-800">
             <TabsTrigger 
               value="agents" 
               className="flex items-center gap-2 data-[state=active]:bg-neutral-700"
@@ -173,6 +175,13 @@ export function RightInfoPanel({
             >
               <Zap className="h-4 w-4" />
               <span className="hidden sm:inline">Automation</span>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="mcp" 
+              className="flex items-center gap-2 data-[state=active]:bg-neutral-700"
+            >
+              <Server className="h-4 w-4" />
+              <span className="hidden sm:inline">MCP</span>
             </TabsTrigger>
           </TabsList>
         </div>
@@ -343,6 +352,13 @@ export function RightInfoPanel({
                 />
               </div>
             </ScrollArea>
+          </TabsContent>
+
+          <TabsContent value="mcp" className="h-full m-0 p-0">
+            <MCPIntegrationDashboard 
+              isActive={activeTab === 'mcp'}
+              className="h-full"
+            />
           </TabsContent>
         </div>
       </Tabs>
