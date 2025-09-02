@@ -13,6 +13,7 @@ import logging
 from typing import Optional, Dict, Any
 from .sse_bus import stream, publish, get_stats
 from .error_handler import execute_error_action
+from .tool_metrics import get_dashboard_data
 
 logger = logging.getLogger(__name__)
 
@@ -138,6 +139,16 @@ async def health_check():
 async def statistics():
     """Get detailed server statistics"""
     return get_stats()
+
+
+@app.get("/dashboard-data")
+async def get_dashboard_metrics():
+    """Get tool orchestration dashboard data"""
+    try:
+        return get_dashboard_data()
+    except Exception as e:
+        logger.error(f"Error getting dashboard data: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get dashboard data")
 
 # Development utilities
 @app.post("/test/agent-event")

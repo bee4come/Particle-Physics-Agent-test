@@ -15,6 +15,7 @@ import math
 
 from .particle_name_mappings import normalize_particle_name, PARTICLE_NAME_MAPPINGS
 from ...tracing_wrapper import emit_tool_start, emit_tool_complete, get_current_correlation_ids
+from ...tool_metrics import start_tool_measurement, end_tool_measurement
 
 logger = logging.getLogger(__name__)
 
@@ -284,12 +285,21 @@ async def search_particle_mcp(query: str, **kwargs) -> Dict[str, Any]:
     # Get correlation IDs for tracing
     trace_id, step_id, session_id = get_current_correlation_ids()
     
-    # Emit start event
+    # Emit start event and start measurement
     start_time = emit_tool_start(
         trace_id=trace_id, 
         step_id=step_id, 
         tool="search_particle_mcp", 
         session_id=session_id,
+        params={"query": query, **kwargs}
+    )
+    
+    # Start tool measurement for dashboard
+    measurement_id = start_tool_measurement(
+        tool_name="search_particle_mcp",
+        session_id=session_id,
+        trace_id=trace_id,
+        step_id=step_id,
         params={"query": query, **kwargs}
     )
     
@@ -322,7 +332,7 @@ async def search_particle_mcp(query: str, **kwargs) -> Dict[str, Any]:
         else:
             response = result
         
-        # Emit completion event
+        # Emit completion event and end measurement
         emit_tool_complete(
             trace_id=trace_id,
             step_id=step_id,
@@ -333,12 +343,15 @@ async def search_particle_mcp(query: str, **kwargs) -> Dict[str, Any]:
             result_summary=f"Found {len(response.get('particles', []))} particles"
         )
         
+        # End tool measurement
+        end_tool_measurement(measurement_id, success=True)
+        
         return response
         
     except Exception as e:
         logger.error(f"search_particle_mcp failed: {e}")
         
-        # Emit failure event
+        # Emit failure event and end measurement
         emit_tool_complete(
             trace_id=trace_id,
             step_id=step_id,
@@ -348,6 +361,9 @@ async def search_particle_mcp(query: str, **kwargs) -> Dict[str, Any]:
             success=False,
             error=str(e)
         )
+        
+        # End tool measurement with error
+        end_tool_measurement(measurement_id, success=False, error=str(e))
         
         return {"error": str(e)}
 

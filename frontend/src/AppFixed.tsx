@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useADKEnhanced } from "@/hooks/useADKEnhanced";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import ReactMarkdown from "react-markdown";
 import { Copy, CopyCheck, AlertCircle, User, Bot, Wifi, WifiOff, RefreshCw, Server, Terminal } from "lucide-react";
 import { AgentWorkflow } from "@/components/AgentWorkflow";
@@ -12,6 +13,7 @@ import { AgentWorkflowEnhanced } from "@/components/AgentWorkflowEnhanced";
 import { LogPanelFixed } from "@/components/LogPanelFixed";
 import { ErrorCard, StructuredError, parseErrorFromMessage, ErrorAction } from "@/components/ErrorCard";
 import { ErrorCardPanel } from "@/components/ErrorCardPanel";
+import { ToolOrchestrationDashboard } from "@/components/ToolOrchestrationDashboard";
 // import { RightInfoPanel } from "@/components/RightInfoPanel";
 import { useBackendLogger } from "@/hooks/useBackendLogger";
 
@@ -23,8 +25,9 @@ export default function AppFixed() {
   const [isLogPanelOpen, setIsLogPanelOpen] = useState(false);
   const [completedWorkflows, setCompletedWorkflows] = useState<Record<string, any>>({});
   const [shouldClearInput, setShouldClearInput] = useState(false);
-  const [rightPanelTab, setRightPanelTab] = useState<'agents' | 'logs' | 'versions' | 'recovery' | 'automation' | 'mcp'>('agents');
+  const [rightPanelTab, setRightPanelTab] = useState<'agents' | 'logs' | 'versions' | 'recovery' | 'automation' | 'mcp' | 'dashboard'>('agents');
   const [structuredErrors, setStructuredErrors] = useState<StructuredError[]>([]);
+  const [showDashboard, setShowDashboard] = useState(false);
 
   const { logs, logger, clearLogs, processADKEvents } = useBackendLogger();
   
@@ -558,10 +561,34 @@ Database: PDG 2025 edition
       </div>
       </div>
       
-      {/* Right side - MCP Status Panel */}
+      {/* Right side - Tabbed Panel */}
       <div className="w-96 border-l border-neutral-700/50 flex-shrink-0 bg-neutral-900">
-        <div className="p-4 h-full overflow-y-auto">
-          <h3 className="text-lg font-semibold mb-4 text-white">MCP Integration</h3>
+        <div className="h-full overflow-hidden flex flex-col">
+          {/* Tab Header */}
+          <div className="flex border-b border-neutral-700/50 bg-neutral-800/50">
+            <Button
+              variant={rightPanelTab === 'mcp' ? 'secondary' : 'ghost'}
+              size="sm"
+              onClick={() => setRightPanelTab('mcp')}
+              className="flex-1 rounded-none border-r border-neutral-700/50 text-xs"
+            >
+              MCP
+            </Button>
+            <Button
+              variant={rightPanelTab === 'dashboard' ? 'secondary' : 'ghost'}
+              size="sm"
+              onClick={() => setRightPanelTab('dashboard')}
+              className="flex-1 rounded-none text-xs"
+            >
+              Dashboard
+            </Button>
+          </div>
+          
+          {/* Tab Content */}
+          <div className="flex-1 overflow-y-auto">
+            {rightPanelTab === 'mcp' && (
+              <div className="p-4">
+                <h3 className="text-lg font-semibold mb-4 text-white">MCP Integration</h3>
           
           <div className="space-y-4">
             <div className="bg-neutral-800 p-4 rounded-lg">
@@ -607,6 +634,19 @@ Database: PDG 2025 edition
                     </div>
                   ))}
                 </div>
+              </div>
+            )}
+                </div>
+              </div>
+            )}
+            
+            {rightPanelTab === 'dashboard' && (
+              <div className="p-2">
+                <ToolOrchestrationDashboard 
+                  events={processedEvents}
+                  isLive={isLoading}
+                  onRefresh={() => window.location.reload()}
+                />
               </div>
             )}
           </div>
