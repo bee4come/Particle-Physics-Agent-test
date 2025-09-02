@@ -12,8 +12,12 @@ interface ProcessedEvent {
   traceInfo?: {
     traceId: string;
     stepId: string;
+    sessionId?: string;
     tool?: string;
     duration?: number;
+    stage?: string;
+    status?: string;
+    correlationChain?: string[];
   };
 }
 
@@ -286,14 +290,44 @@ export function AgentWorkflowEnhanced({ events, isLoading, isCompleted, pollingS
                               {formatTimestamp(event.timestamp)}
                             </span>
                             {event.traceInfo && (
-                              <span className="text-xs text-neutral-500 font-mono">
-                                #{event.traceInfo.traceId}
+                              <div className="flex items-center gap-1 text-xs text-neutral-500 font-mono">
+                                <span title={`Trace ID: ${event.traceInfo.traceId}`}>
+                                  #{event.traceInfo.traceId.substring(0, 8)}
+                                </span>
+                                <span title={`Step ID: ${event.traceInfo.stepId}`}>
+                                  .{event.traceInfo.stepId}
+                                </span>
+                                {event.traceInfo.sessionId && (
+                                  <span title={`Session ID: ${event.traceInfo.sessionId}`} className="text-blue-400">
+                                    @{event.traceInfo.sessionId.substring(0, 6)}
+                                  </span>
+                                )}
+                                {event.traceInfo.stage && (
+                                  <Badge variant="outline" className="text-xs px-1 py-0 h-auto text-purple-400 border-purple-400/30">
+                                    {event.traceInfo.stage}
+                                  </Badge>
+                                )}
+                                {event.traceInfo.tool && (
+                                  <Badge variant="outline" className="text-xs px-1 py-0 h-auto text-cyan-400 border-cyan-400/30">
+                                    {event.traceInfo.tool}
+                                  </Badge>
+                                )}
                                 {event.traceInfo.duration && (
-                                  <span className="text-green-400 ml-1">
+                                  <span className="text-green-400">
                                     • {formatDuration(event.traceInfo.duration)}
                                   </span>
                                 )}
-                              </span>
+                                {event.traceInfo.status && (
+                                  <span className={`text-xs ${
+                                    event.traceInfo.status === 'completed' ? 'text-green-400' :
+                                    event.traceInfo.status === 'failed' ? 'text-red-400' :
+                                    event.traceInfo.status === 'started' ? 'text-yellow-400' :
+                                    'text-neutral-400'
+                                  }`}>
+                                    [{event.traceInfo.status}]
+                                  </span>
+                                )}
+                              </div>
                             )}
                           </div>
                           <p className="text-xs text-neutral-300">

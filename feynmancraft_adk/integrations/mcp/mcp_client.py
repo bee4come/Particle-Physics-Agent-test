@@ -14,6 +14,7 @@ import os
 import math
 
 from .particle_name_mappings import normalize_particle_name, PARTICLE_NAME_MAPPINGS
+from ...tracing_wrapper import emit_tool_start, emit_tool_complete, get_current_correlation_ids
 
 logger = logging.getLogger(__name__)
 
@@ -280,6 +281,18 @@ async def get_mcp_client():
 # MCP tool functions that map to the 64 tools available in the server
 async def search_particle_mcp(query: str, **kwargs) -> Dict[str, Any]:
     """Search for particles using the MCP server."""
+    # Get correlation IDs for tracing
+    trace_id, step_id, session_id = get_current_correlation_ids()
+    
+    # Emit start event
+    start_time = emit_tool_start(
+        trace_id=trace_id, 
+        step_id=step_id, 
+        tool="search_particle_mcp", 
+        session_id=session_id,
+        params={"query": query, **kwargs}
+    )
+    
     try:
         # Normalize query using centralized mappings
         normalized_query = normalize_particle_name(query)
@@ -302,14 +315,40 @@ async def search_particle_mcp(query: str, **kwargs) -> Dict[str, Any]:
                 if isinstance(r, dict) and "name" in r:
                     particles.append(r)
             
-            return {
+            response = {
                 "particles": particles,
                 "total_found": result.get("total_found", len(particles))
             }
+        else:
+            response = result
         
-        return result
+        # Emit completion event
+        emit_tool_complete(
+            trace_id=trace_id,
+            step_id=step_id,
+            tool="search_particle_mcp",
+            session_id=session_id,
+            start_time=start_time,
+            success=True,
+            result_summary=f"Found {len(response.get('particles', []))} particles"
+        )
+        
+        return response
+        
     except Exception as e:
         logger.error(f"search_particle_mcp failed: {e}")
+        
+        # Emit failure event
+        emit_tool_complete(
+            trace_id=trace_id,
+            step_id=step_id,
+            tool="search_particle_mcp",
+            session_id=session_id,
+            start_time=start_time,
+            success=False,
+            error=str(e)
+        )
+        
         return {"error": str(e)}
 
 

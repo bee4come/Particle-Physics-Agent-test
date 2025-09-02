@@ -17,6 +17,8 @@
 import logging
 import warnings
 import sys
+import uuid
+from typing import Any, Dict, Optional
 
 from google.adk.agents import Agent
 
@@ -28,6 +30,7 @@ from .sub_agents.tikz_validator_agent import TikZValidatorAgent
 from .sub_agents.physics_validator_agent import PhysicsValidatorAgent
 from .sub_agents.feedback_agent import FeedbackAgent
 from .sub_agents.deep_research_agent import DeepResearchAgent
+from .tracing_wrapper import TracingContext, TracedAgent, emit_workflow_stage, emit_agent_transfer
 
 warnings.filterwarnings("ignore", category=UserWarning, module=".*pydantic.*")
 
@@ -35,7 +38,8 @@ logger = logging.getLogger(__name__)
 logger.debug("Using MODEL: %s", MODEL)
 
 
-root_agent = Agent(
+# Create the base root agent
+_base_root_agent = Agent(
     model=MODEL,
     name="root_agent",
     description=(
@@ -43,6 +47,9 @@ root_agent = Agent(
         "from natural language descriptions of physics processes."
     ),
     instruction="""You are the master controller of the FeynmanCraft system, responsible for orchestrating an advanced workflow that includes a **conditional correction loop**. Your goal is to ensure the generated Feynman diagram code is not only physically correct but also 100% compilable.
+
+**TRACING INTEGRATION:**
+All your operations now include automatic correlation tracking. Each user request gets a unique sessionId and traceId for end-to-end observability. When transferring between agents, correlation IDs are maintained for complete workflow visibility.
 
 **CONTINUOUS CONVERSATION SUPPORT:**
 You support continuous conversation - after completing one diagram generation, you can immediately process new user requests for additional diagrams. Each new request starts a fresh workflow while maintaining conversation context.
@@ -104,6 +111,33 @@ You support continuous conversation - after completing one diagram generation, y
         FeedbackAgent,
     ],
 )
+
+# Create a traced version that will be wrapped at runtime
+def create_traced_root_agent(session_id: str = None, user_request: str = ""):
+    """Create a traced root agent with correlation tracking."""
+    if not session_id:
+        session_id = str(uuid.uuid4())
+    
+    # Create tracing context
+    tracing_context = TracingContext(session_id, user_request)
+    
+    # Wrap the base agent with tracing
+    traced_agent = TracedAgent(_base_root_agent, tracing_context)
+    
+    # Emit initial workflow stage
+    emit_workflow_stage(
+        trace_id=tracing_context.trace_id,
+        step_id=tracing_context.get_next_step_id(),
+        stage="initialization",
+        status="started",
+        session_id=session_id,
+        details={"user_request": user_request}
+    )
+    
+    return traced_agent
+
+# Export the traced root agent as the default
+root_agent = _base_root_agent  # Keep backward compatibility
 
 
 # Support for --input flag when running with ADK CLI

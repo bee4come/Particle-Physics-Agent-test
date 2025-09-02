@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SSE Client Test</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 20px; background: #0b0b0b; color: #e6e6e6; }
+    .row { margin: 8px 0; }
+    button { padding: 8px 12px; background: #2563eb; color: #fff; border: 0; border-radius: 6px; cursor: pointer; }
+    button:disabled { background: #555; cursor: not-allowed; }
+    #log { margin-top: 12px; padding: 10px; background: #111; border: 1px solid #333; border-radius: 8px; max-height: 420px; overflow: auto; }
+    .evt { padding: 6px 8px; border-left: 3px solid #333; margin: 6px 0; background: #0a0a0a; }
+    .evt.ready { border-color: #22c55e; }
+    .evt.heartbeat { border-color: #3b82f6; }
+    .evt.custom { border-color: #a855f7; }
+    code { color: #93c5fd; }
+    input { padding: 6px 8px; background: #0f172a; color: #e5e7eb; border: 1px solid #334155; border-radius: 6px; }
+    label { margin-right: 6px; }
+  </style>
+  <script>
+    let es = null;
+    function log(msg, cls = '') {
+      const el = document.getElementById('log');
+      const div = document.createElement('div');
+      div.className = `evt ${cls}`;
+      div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+      el.appendChild(div);
+      el.scrollTop = el.scrollHeight;
+    }
+    function connect() {
+      const url = document.getElementById('url').value.trim() || 'http://localhost:8001/events';
+      if (es) es.close();
+      es = new EventSource(url);
+      es.onopen = () => {
+        log('SSE connection opened', 'ready');
+        document.getElementById('connectBtn').disabled = true;
+        document.getElementById('disconnectBtn').disabled = false;
+      };
+      es.onmessage = (e) => {
+        try {
+          const data = JSON.parse(e.data);
+          const kind = data.type || 'message';
+          if (kind === 'server.ready') {
+            log(`Server ready, seq=${data.seq}`, 'ready');
+          } else if (kind === 'heartbeat') {
+            log(`Heartbeat active_subscribers=${data.active_subscribers}`, 'heartbeat');
+          } else {
+            log(`${kind} ${JSON.stringify(data)}`, 'custom');
+          }
+        } catch (err) {
+          log(`Raw: ${e.data}`);
+        }
+      };
+      es.onerror = () => {
+        log('SSE error');
+        es.close();
+        document.getElementById('connectBtn').disabled = false;
+        document.getElementById('disconnectBtn').disabled = true;
+      };
+    }
+    function disconnect() {
+      if (es) es.close();
+      es = null;
+      log('SSE connection closed');
+      document.getElementById('connectBtn').disabled = false;
+      document.getElementById('disconnectBtn').disabled = true;
+    }
+    async function emitTest() {
+      const endpoint = document.getElementById('emitUrl').value.trim() || 'http://localhost:8001/emit';
+      const payload = {
+        type: 'tool.end',
+        traceId: 'test-trace',
+        stepId: 'test-step',
+        tool: 'playwright_probe',
+        status: 'ok',
+        latency_ms: 42,
+        level: 2,
+        payload: { summary: 'Playwright test event' }
+      };
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      log(`Emit status: ${res.status}`);
+    }
+  </script>
+  
+  <!-- Allow Playwright to quickly assert elements by text/role -->
+</head>
+<body>
+  <h1>SSE Client Test</h1>
+  <div class="row">
+    <label for="url">Events URL</label>
+    <input id="url" size="40" value="http://localhost:8001/events" />
+    <button id="connectBtn" onclick="connect()">Connect</button>
+    <button id="disconnectBtn" onclick="disconnect()" disabled>Disconnect</button>
+  </div>
+  <div class="row">
+    <label for="emitUrl">Emit URL</label>
+    <input id="emitUrl" size="40" value="http://localhost:8001/emit" />
+    <button id="emitBtn" onclick="emitTest()">Emit Test Event</button>
+  </div>
+  <div id="log" aria-label="event-log"></div>
+</body>
+</html>
+
