@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import ReactMarkdown from "react-markdown";
 import { Copy, CopyCheck, AlertCircle, User, Bot, Wifi, WifiOff, RefreshCw, Server, Terminal } from "lucide-react";
 import { AgentWorkflow } from "@/components/AgentWorkflow";
+import { AgentWorkflowEnhanced } from "@/components/AgentWorkflowEnhanced";
 import { LogPanelFixed } from "@/components/LogPanelFixed";
 import { ErrorCard, StructuredError, parseErrorFromMessage, ErrorAction } from "@/components/ErrorCard";
 // import { RightInfoPanel } from "@/components/RightInfoPanel";
@@ -196,6 +197,36 @@ export default function AppFixed() {
     setIsLogPanelOpen(prev => !prev);
   }, []);
 
+  // Copy server info for debugging
+  const copyServerInfo = useCallback(async () => {
+    const info = connectionStatus.serverInfo;
+    const serverDetails = `
+FeynmanCraft Demo Environment
+============================
+Backend: ${info?.edition || 'ADK'} 
+Uptime: ${Math.floor((info?.uptime || 0) / 60)} minutes
+MCP Tools: ${info?.tools_count || 0}
+CORS Status: ${info?.cors_status || 'Unknown'}
+Connection: ${connectionStatus.isConnected ? 'Connected' : 'Disconnected'}
+Last Checked: ${new Date(connectionStatus.lastChecked).toISOString()}
+
+Available Physics Tools:
+- search_particle, get_property, list_decays
+- find_decays, list_properties, resolve_identifier  
+- database_info, get_property_details
+
+Citation: ParticlePhysics MCP Server v1.0.0
+Database: PDG 2025 edition
+    `.trim();
+    
+    try {
+      await navigator.clipboard.writeText(serverDetails);
+      logger.info('frontend', 'Server info copied to clipboard');
+    } catch (err) {
+      console.error('Failed to copy server info:', err);
+    }
+  }, [connectionStatus, logger]);
+
   // Connection status indicator component
   const renderConnectionIndicator = () => (
     <div className="fixed top-4 right-4 z-50 flex items-center gap-2">
@@ -217,12 +248,38 @@ export default function AppFixed() {
         {connectionStatus.isConnected ? (
           <>
             <Wifi className="h-3 w-3" />
-            <span>Backend Connected</span>
+            <span>
+              {connectionStatus.serverInfo ? (
+                <>
+                  Connected • {connectionStatus.serverInfo.edition || 'ADK'} • 
+                  Uptime {Math.floor((connectionStatus.serverInfo.uptime || 0) / 60)}m • 
+                  Tools: {connectionStatus.serverInfo.tools_count || 0}
+                </>
+              ) : (
+                'Backend Connected'
+              )}
+            </span>
+            {connectionStatus.serverInfo && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={copyServerInfo}
+                className="h-5 w-5 p-0 hover:bg-green-500/20"
+                title="Copy server info"
+              >
+                <Copy className="h-2 w-2" />
+              </Button>
+            )}
           </>
         ) : (
           <>
             <WifiOff className="h-3 w-3" />
-            <span>Backend Disconnected</span>
+            <span>
+              {connectionStatus.error ? 
+                `Disconnected: ${connectionStatus.error.substring(0, 30)}...` : 
+                'Backend Disconnected'
+              }
+            </span>
           </>
         )}
       </div>
@@ -411,7 +468,7 @@ export default function AppFixed() {
                       {/* Show completed workflow for this message */}
                       {completedWorkflows[message.id] && (
                         <div className="flex items-start gap-3 ml-9">
-                          <AgentWorkflow 
+                          <AgentWorkflowEnhanced 
                             events={completedWorkflows[message.id]} 
                             isLoading={false} 
                             isCompleted={true}
@@ -433,7 +490,7 @@ export default function AppFixed() {
                   <Bot className="h-3 w-3" />
                 </div>
               </div>
-              <AgentWorkflow 
+              <AgentWorkflowEnhanced 
                 events={processedEvents} 
                 isLoading={true} 
                 isCompleted={false}
