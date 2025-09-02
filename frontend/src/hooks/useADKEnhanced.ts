@@ -32,6 +32,34 @@ export interface ConnectionStatus {
   };
 }
 
+export interface StructuredError {
+  id: string;
+  title: string;
+  message: string;
+  category: string;
+  severity: string;
+  timestamp: number;
+  session_id: string;
+  trace_id: string;
+  step_id: string;
+  agent?: string;
+  tool?: string;
+  stack_trace?: string;
+  user_message?: string;
+  technical_details?: string;
+  actions?: Array<{
+    id: string;
+    label: string;
+    description: string;
+    action_type: string;
+    handler?: string;
+    params?: Record<string, any>;
+    dangerous?: boolean;
+  }>;
+  related_events?: string[];
+  documentation_url?: string;
+}
+
 export const useADKEnhanced = () => {
   const [messages, setMessages] = useState<ADKMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -43,6 +71,7 @@ export const useADKEnhanced = () => {
     lastChecked: Date.now() 
   });
   const [isWorkflowComplete, setIsWorkflowComplete] = useState(false);
+  const [structuredErrors, setStructuredErrors] = useState<StructuredError[]>([]);
   
   const abortControllerRef = useRef<AbortController | null>(null);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
@@ -63,6 +92,19 @@ export const useADKEnhanced = () => {
   
   const handleSSEEvent = useCallback((event: SSEEvent) => {
     console.log('Real-time SSE event received:', event);
+    
+    // Handle structured errors
+    if (event.type === 'structured_error' && (event as any).error) {
+      const errorData = (event as any).error;
+      setStructuredErrors(prev => {
+        // Check if error already exists
+        const exists = prev.some(e => e.id === errorData.id);
+        if (!exists) {
+          return [...prev, errorData];
+        }
+        return prev;
+      });
+    }
     
     // Convert SSE events to ProcessedEvents for real-time display
     if (event.type.startsWith('step.') || event.type.startsWith('tool.')) {
@@ -567,6 +609,53 @@ export const useADKEnhanced = () => {
     };
   }, [checkConnection, stopPolling]);
 
+  // Error handling functions
+  const dismissError = useCallback((errorId: string) => {
+    setStructuredErrors(prev => prev.filter(e => e.id !== errorId));
+  }, []);
+
+  const clearAllErrors = useCallback(() => {
+    setStructuredErrors([]);
+  }, []);
+
+  const executeErrorAction = useCallback(async (
+    actionId: string, 
+    actionType: string, 
+    params: Record<string, any> = {}
+  ): Promise<{ success: boolean; message?: string; result?: any }> => {
+    try {
+      // Call the backend error action endpoint
+      const response = await fetch('http://localhost:8001/execute-error-action', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action_id: actionId,
+          action_type: actionType,
+          params
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      return {
+        success: result.success,
+        message: result.message,
+        result: result.result
+      };
+    } catch (error) {
+      console.error('Failed to execute error action:', error);
+      return {
+        success: false,
+        message: `Failed to execute action: ${error instanceof Error ? error.message : 'Unknown error'}`
+      };
+    }
+  }, []);
+
   return {
     messages,
     events,
@@ -583,6 +672,11 @@ export const useADKEnhanced = () => {
     sseEnabled,
     sseConnectionStatus,
     realTimeEvents,
-    toggleSSE: () => setSSEEnabled(!sseEnabled)
+    toggleSSE: () => setSSEEnabled(!sseEnabled),
+    // Structured error handling
+    structuredErrors,
+    dismissError,
+    clearAllErrors,
+    executeErrorAction
   };
 };

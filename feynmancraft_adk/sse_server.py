@@ -8,9 +8,11 @@ from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
+from pydantic import BaseModel
 import logging
 from typing import Optional, Dict, Any
 from .sse_bus import stream, publish, get_stats
+from .error_handler import execute_error_action
 
 logger = logging.getLogger(__name__)
 
@@ -99,6 +101,27 @@ async def emit_test_event(event: Dict[str, Any]):
     except Exception as e:
         logger.error(f"Error emitting event: {e}")
         raise HTTPException(status_code=500, detail="Failed to emit event")
+
+
+class ErrorActionRequest(BaseModel):
+    action_id: str
+    action_type: str
+    params: Dict[str, Any] = {}
+
+
+@app.post("/execute-error-action")
+async def execute_error_action_endpoint(request: ErrorActionRequest):
+    """Execute an error action with the given parameters"""
+    try:
+        result = execute_error_action(request.action_id, request.action_type, request.params)
+        return result
+    except Exception as e:
+        logger.error(f"Error executing error action {request.action_id}: {e}")
+        return {
+            "success": False,
+            "message": f"Failed to execute action: {str(e)}"
+        }
+
 
 @app.get("/health")
 async def health_check():

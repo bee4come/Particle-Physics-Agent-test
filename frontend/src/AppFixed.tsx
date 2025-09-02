@@ -11,6 +11,7 @@ import { AgentWorkflow } from "@/components/AgentWorkflow";
 import { AgentWorkflowEnhanced } from "@/components/AgentWorkflowEnhanced";
 import { LogPanelFixed } from "@/components/LogPanelFixed";
 import { ErrorCard, StructuredError, parseErrorFromMessage, ErrorAction } from "@/components/ErrorCard";
+import { ErrorCardPanel } from "@/components/ErrorCardPanel";
 // import { RightInfoPanel } from "@/components/RightInfoPanel";
 import { useBackendLogger } from "@/hooks/useBackendLogger";
 
@@ -40,7 +41,11 @@ export default function AppFixed() {
     pollingState,
     sseEnabled,
     sseConnectionStatus,
-    toggleSSE
+    toggleSSE,
+    structuredErrors,
+    dismissError,
+    clearAllErrors,
+    executeErrorAction
   } = useADKEnhanced();
 
   // Auto-scroll to bottom
@@ -491,6 +496,14 @@ Database: PDG 2025 edition
               </div>
             );
           })}
+          
+          {/* Structured Error Cards */}
+          <ErrorCardPanel 
+            errors={structuredErrors}
+            onDismissError={dismissError}
+            onExecuteAction={executeErrorAction}
+            onClearAllErrors={clearAllErrors}
+          />
           
           {/* Loading state with activity timeline */}
           {isLoading && (
