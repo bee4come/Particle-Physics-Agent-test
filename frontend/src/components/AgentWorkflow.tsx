@@ -9,15 +9,22 @@ interface ProcessedEvent {
   timestamp: number;
   author: string;
   details?: string;
+  traceInfo?: {
+    traceId: string;
+    stepId: string;
+    tool?: string;
+    duration?: number;
+  };
 }
 
 interface AgentWorkflowProps {
   events: ProcessedEvent[];
   isLoading: boolean;
   isCompleted?: boolean;
+  pollingStatus?: string;
 }
 
-export function AgentWorkflow({ events, isLoading, isCompleted }: AgentWorkflowProps) {
+export function AgentWorkflow({ events, isLoading, isCompleted, pollingStatus }: AgentWorkflowProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   
   const formatTimestamp = (timestamp: number) => {
@@ -77,6 +84,16 @@ export function AgentWorkflow({ events, isLoading, isCompleted }: AgentWorkflowP
                     <Clock className="h-3 w-3" />
                     {formatTimestamp(event.timestamp)}
                   </span>
+                  {event.traceInfo && (
+                    <span className="text-xs text-neutral-500 font-mono">
+                      #{event.traceInfo.traceId}
+                      {event.traceInfo.duration && (
+                        <span className="text-green-400 ml-1">
+                          • {event.traceInfo.duration}ms
+                        </span>
+                      )}
+                    </span>
+                  )}
                 </div>
                 <p className="text-sm text-neutral-300">
                   {event.data}
@@ -90,11 +107,13 @@ export function AgentWorkflow({ events, isLoading, isCompleted }: AgentWorkflowP
             </div>
           ))}
           
-          {/* Loading indicator */}
+          {/* Enhanced loading indicator */}
           {isLoading && !isCompleted && (
             <div className="flex items-center gap-2 pt-2">
               <div className="animate-spin h-3 w-3 border border-blue-400 border-t-transparent rounded-full"></div>
-              <span className="text-sm text-neutral-300">Processing... (polling every 2s)</span>
+              <span className="text-sm text-neutral-300">
+                {pollingStatus || 'Processing...'}
+              </span>
             </div>
           )}
         </div>

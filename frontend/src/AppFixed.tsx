@@ -2,13 +2,14 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { WelcomeScreen } from "@/components/WelcomeScreen";
 import { InputForm } from "@/components/InputForm";
 import { Button } from "@/components/ui/button";
-import { useADKFinal } from "@/hooks/useADKFinal";
+import { useADKEnhanced } from "@/hooks/useADKEnhanced";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import ReactMarkdown from "react-markdown";
 import { Copy, CopyCheck, AlertCircle, User, Bot, Wifi, WifiOff, RefreshCw, Server, Terminal } from "lucide-react";
 import { AgentWorkflow } from "@/components/AgentWorkflow";
 import { LogPanelFixed } from "@/components/LogPanelFixed";
+import { ErrorCard, StructuredError, parseErrorFromMessage, ErrorAction } from "@/components/ErrorCard";
 // import { RightInfoPanel } from "@/components/RightInfoPanel";
 import { useBackendLogger } from "@/hooks/useBackendLogger";
 
@@ -21,6 +22,7 @@ export default function AppFixed() {
   const [completedWorkflows, setCompletedWorkflows] = useState<Record<string, any>>({});
   const [shouldClearInput, setShouldClearInput] = useState(false);
   const [rightPanelTab, setRightPanelTab] = useState<'agents' | 'logs' | 'versions' | 'recovery' | 'automation' | 'mcp'>('agents');
+  const [structuredErrors, setStructuredErrors] = useState<StructuredError[]>([]);
 
   const { logs, logger, clearLogs, processADKEvents } = useBackendLogger();
   
@@ -32,8 +34,10 @@ export default function AppFixed() {
     connectionStatus,
     sendMessage, 
     stop,
-    checkConnection 
-  } = useADKFinal();
+    checkConnection,
+    pollingStatus,
+    pollingState
+  } = useADKEnhanced();
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -56,10 +60,26 @@ export default function AppFixed() {
     }
   }, [connectionStatus.isConnected, connectionStatus.error, logger]);
 
-  // Log errors
+  // Enhanced error handling with structured errors
   useEffect(() => {
     if (error) {
       logger.error('frontend', 'Error occurred', error);
+      
+      // Parse error into structured format
+      const structuredError = parseErrorFromMessage(error);
+      if (structuredError) {
+        setStructuredErrors(prev => {
+          // Avoid duplicate errors
+          const existingError = prev.find(e => 
+            e.title === structuredError.title && 
+            e.description === structuredError.description
+          );
+          if (existingError) return prev;
+          
+          // Keep only last 5 errors
+          return [structuredError, ...prev.slice(0, 4)];
+        });
+      }
     }
   }, [error, logger]);
 
@@ -133,6 +153,44 @@ export default function AppFixed() {
   const formatTimestamp = useCallback((timestamp: number) => {
     return new Date(timestamp).toLocaleTimeString();
   }, []);
+
+  // Handle error card actions
+  const handleErrorAction = useCallback((errorId: string, action: ErrorAction) => {
+    setStructuredErrors(prev => {
+      const errorIndex = prev.findIndex(e => e.id === errorId);
+      if (errorIndex === -1) return prev;
+      
+      const updatedErrors = [...prev];
+      const error = updatedErrors[errorIndex];
+      
+      switch (action) {
+        case 'retry':
+          // Increment retry count and attempt retry
+          updatedErrors[errorIndex] = {
+            ...error,
+            retryCount: (error.retryCount || 0) + 1
+          };
+          logger.info('error-handling', `Retrying error: ${error.title}`, { errorId, retryCount: error.retryCount || 0 + 1 });
+          // Could trigger actual retry logic here
+          break;
+          
+        case 'degrade':
+          // Mark as degraded and remove from active errors
+          logger.info('error-handling', `Degrading gracefully for error: ${error.title}`, { errorId });
+          return prev.filter(e => e.id !== errorId);
+          
+        case 'ignore':
+          // Remove from active errors
+          logger.info('error-handling', `Ignoring error: ${error.title}`, { errorId });
+          return prev.filter(e => e.id !== errorId);
+          
+        default:
+          break;
+      }
+      
+      return updatedErrors;
+    });
+  }, [logger]);
 
   const toggleLogPanel = useCallback(() => {
     setIsLogPanelOpen(prev => !prev);
@@ -379,7 +437,28 @@ export default function AppFixed() {
                 events={processedEvents} 
                 isLoading={true} 
                 isCompleted={false}
+                pollingStatus={pollingStatus}
               />
+            </div>
+          )}
+          
+          {/* Structured Error Cards */}
+          {structuredErrors.length > 0 && (
+            <div className="flex flex-col gap-3 mt-3">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="h-4 w-4 text-red-400" />
+                <span className="text-sm font-medium text-red-300">
+                  Active Issues ({structuredErrors.length})
+                </span>
+              </div>
+              {structuredErrors.map(error => (
+                <ErrorCard
+                  key={error.id}
+                  error={error}
+                  onAction={handleErrorAction}
+                  isCompact={structuredErrors.length > 2}
+                />
+              ))}
             </div>
           )}
         </div>
