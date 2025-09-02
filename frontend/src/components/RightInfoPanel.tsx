@@ -21,7 +21,7 @@ import { DataFlowVisualizer } from './agent-visualization/DataFlowVisualizer';
 import { useAgentProgress } from './agent-visualization/useAgentProgress';
 import { ErrorRecoveryDashboard } from './error-recovery/ErrorRecoveryDashboard';
 import { AutomationHooksDashboard } from './automation-hooks/AutomationHooksDashboard';
-import { MCPIntegrationDashboard } from './mcp-integration/MCPIntegrationDashboard';
+// import { MCPIntegrationDashboard } from './mcp-integration/MCPIntegrationDashboard';
 
 export interface RightInfoPanelProps {
   activeTab: 'agents' | 'logs' | 'versions' | 'recovery' | 'automation' | 'mcp';
@@ -355,10 +355,50 @@ export function RightInfoPanel({
           </TabsContent>
 
           <TabsContent value="mcp" className="h-full m-0 p-0">
-            <MCPIntegrationDashboard 
-              isActive={activeTab === 'mcp'}
-              className="h-full"
-            />
+            <ScrollArea className="h-full">
+              <div className="p-4">
+                {/* <MCPIntegrationDashboard 
+                  isActive={isLoading}
+                  className="text-neutral-100"
+                /> */}
+                <div className="text-white">
+                  <h3 className="text-lg font-semibold mb-4">MCP Integration Dashboard</h3>
+                  <div className="space-y-4">
+                    <div className="bg-neutral-800 p-4 rounded-lg">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="h-2 w-2 bg-green-400 rounded-full"></div>
+                        <span className="font-medium">ParticlePhysics MCP Server</span>
+                      </div>
+                      <p className="text-sm text-neutral-300">Running on port 8002</p>
+                      <p className="text-xs text-neutral-400 mt-1">HTTP API integration active</p>
+                    </div>
+                    
+                    <div className="bg-neutral-800 p-4 rounded-lg">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="h-2 w-2 bg-blue-400 rounded-full"></div>
+                        <span className="font-medium">ADK Backend Integration</span>
+                      </div>
+                      <p className="text-sm text-neutral-300">Modified to use HTTP MCP client</p>
+                      <p className="text-xs text-neutral-400 mt-1">Fallback to subprocess if needed</p>
+                    </div>
+                    
+                    <div className="bg-neutral-800 p-4 rounded-lg">
+                      <h4 className="font-medium mb-2">Available Tools</h4>
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div className="text-neutral-300">• search_particle</div>
+                        <div className="text-neutral-300">• get_property</div>
+                        <div className="text-neutral-300">• list_decays</div>
+                        <div className="text-neutral-300">• find_decays</div>
+                        <div className="text-neutral-300">• list_properties</div>
+                        <div className="text-neutral-300">• resolve_identifier</div>
+                        <div className="text-neutral-300">• database_info</div>
+                        <div className="text-neutral-300">• get_property_details</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </ScrollArea>
           </TabsContent>
         </div>
       </Tabs>

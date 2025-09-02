@@ -248,17 +248,32 @@ class ParticlePhysicsMCPClient:
                 self._writer = None
 
 
+# Import HTTP client
+from .http_mcp_client import HTTPParticlePhysicsMCPClient
+
 # Global client instance
 _mcp_client = None
 _client_lock = asyncio.Lock()
 
-async def get_mcp_client() -> ParticlePhysicsMCPClient:
-    """Get or create the MCP client instance."""
+async def get_mcp_client():
+    """Get or create the MCP client instance - now uses HTTP client."""
     global _mcp_client
     async with _client_lock:
         if _mcp_client is None:
-            _mcp_client = ParticlePhysicsMCPClient()
-            await _mcp_client.connect()
+            # Try HTTP client first, fallback to original if needed
+            try:
+                _mcp_client = HTTPParticlePhysicsMCPClient()
+                connected = await _mcp_client.connect()
+                if not connected:
+                    logger.warning("HTTP MCP client failed, falling back to subprocess client")
+                    _mcp_client = ParticlePhysicsMCPClient()
+                    await _mcp_client.connect()
+                else:
+                    logger.info("Using HTTP MCP client on port 8002")
+            except Exception as e:
+                logger.error(f"HTTP MCP client failed: {e}, falling back to subprocess client")
+                _mcp_client = ParticlePhysicsMCPClient()
+                await _mcp_client.connect()
     return _mcp_client
 
 
@@ -274,7 +289,9 @@ async def search_particle_mcp(query: str, **kwargs) -> Dict[str, Any]:
         
         client = await get_mcp_client()
         params = {'query': query}
-        params.update(kwargs)
+        if 'max_results' in kwargs:
+            params['limit'] = kwargs['max_results']  # Map max_results to limit
+        params.update({k:v for k,v in kwargs.items() if k != 'max_results'})
         result = await client.call_tool('search_particle', params)
         
         # Handle the response
@@ -306,9 +323,12 @@ async def get_particle_properties_mcp(particle_name: str, **kwargs) -> Dict[str,
             particle_name = normalized_name
         
         client = await get_mcp_client()
-        params = {'particle_name': particle_name}
-        params.update(kwargs)
-        result = await client.call_tool('get_particle_properties', params)
+        # Map to the correct MCP server tool name
+        params = {'id': particle_name}  # MCP server uses 'id' parameter
+        if 'units_preference' in kwargs:
+            params['quantity'] = 'mass'  # Default to mass if no specific quantity requested
+        params.update({k:v for k,v in kwargs.items() if k != 'units_preference'})
+        result = await client.call_tool('get_property', params)
         
         # Format response
         if isinstance(result, dict) and "particle" in result:

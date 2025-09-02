@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { SquarePen, Send, StopCircle } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
@@ -9,6 +9,7 @@ interface InputFormProps {
   onCancel: () => void;
   isLoading: boolean;
   hasHistory: boolean;
+  shouldClearInput?: boolean; // Add prop to control input clearing
 }
 
 export const InputForm: React.FC<InputFormProps> = ({
@@ -16,14 +17,21 @@ export const InputForm: React.FC<InputFormProps> = ({
   onCancel,
   isLoading,
   hasHistory,
+  shouldClearInput = false,
 }) => {
   const [internalInputValue, setInternalInputValue] = useState("");
+
+  // Clear input when shouldClearInput changes to true
+  useEffect(() => {
+    if (shouldClearInput) {
+      setInternalInputValue("");
+    }
+  }, [shouldClearInput]);
 
   const handleInternalSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!internalInputValue.trim()) return;
     onSubmit(internalInputValue);
-    setInternalInputValue("");
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {

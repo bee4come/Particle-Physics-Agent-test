@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MCP Integration Test</title>
+    <style>
+        body {
+            font-family: monospace;
+            background: #0a0a0a;
+            color: #e5e5e5;
+            padding: 20px;
+            margin: 0;
+        }
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #333;
+            border-radius: 8px;
+            background: #111;
+        }
+        .test-button {
+            background: #0066cc;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .test-button:hover {
+            background: #0080ff;
+        }
+        .test-button:disabled {
+            background: #444;
+            cursor: not-allowed;
+        }
+        .log {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+        }
+        .success { color: #4ade80; }
+        .error { color: #ef4444; }
+        .info { color: #3b82f6; }
+        .warning { color: #f59e0b; }
+        .timeline-event {
+            padding: 8px;
+            margin: 4px 0;
+            border-left: 3px solid #333;
+            background: #0a0a0a;
+        }
+        .timeline-event.success { border-color: #4ade80; }
+        .timeline-event.error { border-color: #ef4444; }
+        .timeline-event.info { border-color: #3b82f6; }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>MCP Integration Test Suite</h1>
+        <p>Testing connection to ParticlePhysics MCP Server at <code>http://localhost:8000</code></p>
+        
+        <!-- Health Check -->
+        <div class="test-section">
+            <h3>🩺 Health Check</h3>
+            <button class="test-button" onclick="testHealthCheck()">Check Server Health</button>
+            <div id="health-log" class="log"></div>
+        </div>
+
+        <!-- Individual Tool Tests -->
+        <div class="test-section">
+            <h3>🔧 Individual Tool Tests</h3>
+            <button class="test-button" onclick="testSearchParticle()">search_particle</button>
+            <button class="test-button" onclick="testGetProperty()">get_property</button>
+            <button class="test-button" onclick="testListDecays()">list_decays</button>
+            <button class="test-button" onclick="testResolveIdentifier()">resolve_identifier</button>
+            <div id="tools-log" class="log"></div>
+        </div>
+
+        <!-- Workflow Tests -->
+        <div class="test-section">
+            <h3>⚡ Physics Validation Workflows</h3>
+            <button class="test-button" onclick="testElectronWorkflow()">Electron Workflow (5 calls)</button>
+            <button class="test-button" onclick="testMuonWorkflow()">Muon Workflow (7 calls)</button>
+            <button class="test-button" onclick="testComprehensiveWorkflow()">Comprehensive (20+ calls)</button>
+            <button class="test-button" onclick="stopWorkflow()" id="stop-btn" disabled>Stop Workflow</button>
+            <div id="workflow-log" class="log"></div>
+        </div>
+
+        <!-- Performance Metrics -->
+        <div class="test-section">
+            <h3>📊 Performance Metrics</h3>
+            <div id="metrics-display" class="log">
+                <div>Total Calls: <span id="total-calls">0</span></div>
+                <div>Successful Calls: <span id="successful-calls">0</span></div>
+                <div>Failed Calls: <span id="failed-calls">0</span></div>
+                <div>Average Response Time: <span id="avg-response-time">0ms</span></div>
+                <div>Success Rate: <span id="success-rate">0%</span></div>
+            </div>
+            <button class="test-button" onclick="resetMetrics()">Reset Metrics</button>
+        </div>
+    </div>
+
+    <script>
+        // Simple MCP Client Implementation
+        class TestMCPClient {
+            constructor() {
+                this.baseUrl = 'http://localhost:8000/mcp';
+                this.metrics = {
+                    totalCalls: 0,
+                    successfulCalls: 0,
+                    failedCalls: 0,
+                    totalLatency: 0
+                };
+            }
+
+            async callTool(toolName, args = {}) {
+                const startTime = performance.now();
+                const id = crypto.randomUUID();
+                
+                try {
+                    const response = await fetch(this.baseUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            jsonrpc: "2.0",
+                            id,
+                            method: "tools/call",
+                            params: {
+                                name: toolName,
+                                arguments: args
+                            }
+                        })
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+
+                    const result = await response.json();
+                    const latency = performance.now() - startTime;
+                    
+                    this.metrics.totalCalls++;
+                    
+                    if (result.error) {
+                        this.metrics.failedCalls++;
+                        throw new Error(`${result.error.message} (Code: ${result.error.code})`);
+                    } else {
+                        this.metrics.successfulCalls++;
+                        this.metrics.totalLatency += latency;
+                    }
+                    
+                    this.updateMetricsDisplay();
+                    return { data: result.result, latency };
+                    
+                } catch (error) {
+                    const latency = performance.now() - startTime;
+                    this.metrics.totalCalls++;
+                    this.metrics.failedCalls++;
+                    this.metrics.totalLatency += latency;
+                    this.updateMetricsDisplay();
+                    throw error;
+                }
+            }
+
+            updateMetricsDisplay() {
+                document.getElementById('total-calls').textContent = this.metrics.totalCalls;
+                document.getElementById('successful-calls').textContent = this.metrics.successfulCalls;
+                document.getElementById('failed-calls').textContent = this.metrics.failedCalls;
+                
+                const avgLatency = this.metrics.successfulCalls > 0 ? 
+                    Math.round(this.metrics.totalLatency / this.metrics.successfulCalls) : 0;
+                document.getElementById('avg-response-time').textContent = avgLatency + 'ms';
+                
+                const successRate = this.metrics.totalCalls > 0 ? 
+                    Math.round((this.metrics.successfulCalls / this.metrics.totalCalls) * 100) : 0;
+                document.getElementById('success-rate').textContent = successRate + '%';
+            }
+
+            resetMetrics() {
+                this.metrics = {
+                    totalCalls: 0,
+                    successfulCalls: 0,
+                    failedCalls: 0,
+                    totalLatency: 0
+                };
+                this.updateMetricsDisplay();
+            }
+        }
+
+        // Initialize client
+        const mcpClient = new TestMCPClient();
+        let currentWorkflow = null;
+
+        function log(containerId, message, type = 'info') {
+            const container = document.getElementById(containerId);
+            const timestamp = new Date().toLocaleTimeString();
+            const colorClass = type;
+            container.innerHTML += `<div class="timeline-event ${colorClass}">[${timestamp}] ${message}</div>`;
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // Health Check Test
+        async function testHealthCheck() {
+            log('health-log', '🏥 Checking MCP server health...', 'info');
+            
+            try {
+                const response = await fetch('http://localhost:8000/health');
+                const health = await response.json();
+                
+                log('health-log', `✅ Server Status: ${health.status}`, 'success');
+                log('health-log', `📊 Version: ${health.version}`, 'info');
+                log('health-log', `⏱️ Uptime: ${health.uptime_sec}s`, 'info');
+                log('health-log', `📚 PDG Edition: ${health.edition}`, 'info');
+                log('health-log', `🛠️ Tools: ${health.tools.join(', ')}`, 'info');
+                
+            } catch (error) {
+                log('health-log', `❌ Health check failed: ${error.message}`, 'error');
+            }
+        }
+
+        // Individual Tool Tests
+        async function testSearchParticle() {
+            log('tools-log', '🔍 Testing search_particle with "electron"...', 'info');
+            
+            try {
+                const result = await mcpClient.callTool('search_particle', { query: 'electron' });
+                log('tools-log', `✅ Found particle: ${JSON.stringify(result.data.content[0].json.result, null, 2)} (${result.latency}ms)`, 'success');
+            } catch (error) {
+                log('tools-log', `❌ search_particle failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function testGetProperty() {
+            log('tools-log', '📏 Testing get_property for electron mass...', 'info');
+            
+            try {
+                const result = await mcpClient.callTool('get_property', { 
+                    id: '11', 
+                    quantity: 'mass',
+                    pedantic: false 
+                });
+                log('tools-log', `✅ Electron mass: ${JSON.stringify(result.data, null, 2)} (${result.latency}ms)`, 'success');
+            } catch (error) {
+                log('tools-log', `❌ get_property failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function testListDecays() {
+            log('tools-log', '🔄 Testing list_decays for muon...', 'info');
+            
+            try {
+                const result = await mcpClient.callTool('list_decays', { 
+                    id: '13', 
+                    limit: 5 
+                });
+                log('tools-log', `✅ Muon decays: ${JSON.stringify(result.data, null, 2)} (${result.latency}ms)`, 'success');
+            } catch (error) {
+                log('tools-log', `❌ list_decays failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function testResolveIdentifier() {
+            log('tools-log', '🔍 Testing resolve_identifier for "e-"...', 'info');
+            
+            try {
+                const result = await mcpClient.callTool('resolve_identifier', { any: 'e-' });
+                log('tools-log', `✅ Resolved: ${JSON.stringify(result.data, null, 2)} (${result.latency}ms)`, 'success');
+            } catch (error) {
+                log('tools-log', `❌ resolve_identifier failed: ${error.message}`, 'error');
+            }
+        }
+
+        // Workflow Tests
+        async function testElectronWorkflow() {
+            log('workflow-log', '🚀 Starting Electron validation workflow...', 'info');
+            
+            const steps = [
+                { tool: 'search_particle', args: { query: 'electron' }, desc: 'Search electron' },
+                { tool: 'resolve_identifier', args: { any: '11' }, desc: 'Resolve identifier' },
+                { tool: 'get_property', args: { id: '11', quantity: 'mass' }, desc: 'Get mass' },
+                { tool: 'get_property', args: { id: '11', quantity: 'charge' }, desc: 'Get charge' },
+                { tool: 'list_properties', args: { id: '11' }, desc: 'List all properties' }
+            ];
+
+            await runWorkflow('electron-workflow', steps);
+        }
+
+        async function testMuonWorkflow() {
+            log('workflow-log', '🚀 Starting Muon validation workflow...', 'info');
+            
+            const steps = [
+                { tool: 'search_particle', args: { query: 'muon' }, desc: 'Search muon' },
+                { tool: 'resolve_identifier', args: { any: '13' }, desc: 'Resolve identifier' },
+                { tool: 'get_property', args: { id: '13', quantity: 'mass' }, desc: 'Get mass' },
+                { tool: 'get_property', args: { id: '13', quantity: 'charge' }, desc: 'Get charge' },
+                { tool: 'get_property', args: { id: '13', quantity: 'lifetime' }, desc: 'Get lifetime' },
+                { tool: 'list_decays', args: { id: '13', limit: 10 }, desc: 'List decay modes' },
+                { tool: 'list_properties', args: { id: '13' }, desc: 'List all properties' }
+            ];
+
+            await runWorkflow('muon-workflow', steps);
+        }
+
+        async function testComprehensiveWorkflow() {
+            log('workflow-log', '🚀 Starting Comprehensive physics audit (20+ calls)...', 'info');
+            
+            const particles = ['11', '13', '111', '511', '25']; // electron, muon, pi0, B0, H0
+            const steps = [];
+            
+            for (const particle of particles) {
+                steps.push(
+                    { tool: 'search_particle', args: { query: particle }, desc: `Search particle ${particle}` },
+                    { tool: 'resolve_identifier', args: { any: particle }, desc: `Resolve ${particle}` },
+                    { tool: 'get_property', args: { id: particle, quantity: 'mass' }, desc: `Get mass of ${particle}` },
+                    { tool: 'list_properties', args: { id: particle }, desc: `List properties of ${particle}` },
+                    { tool: 'list_decays', args: { id: particle, limit: 5 }, desc: `List decays of ${particle}` }
+                );
+            }
+
+            await runWorkflow('comprehensive-workflow', steps);
+        }
+
+        async function runWorkflow(workflowId, steps) {
+            if (currentWorkflow) {
+                log('workflow-log', '⚠️ Another workflow is running. Please stop it first.', 'warning');
+                return;
+            }
+
+            currentWorkflow = { id: workflowId, cancelled: false };
+            document.getElementById('stop-btn').disabled = false;
+            
+            const startTime = Date.now();
+            let completed = 0;
+            let failed = 0;
+
+            try {
+                for (let i = 0; i < steps.length; i++) {
+                    if (currentWorkflow.cancelled) {
+                        log('workflow-log', '🛑 Workflow cancelled by user', 'warning');
+                        break;
+                    }
+
+                    const step = steps[i];
+                    log('workflow-log', `⏳ Step ${i + 1}/${steps.length}: ${step.desc}...`, 'info');
+                    
+                    try {
+                        const result = await mcpClient.callTool(step.tool, step.args);
+                        log('workflow-log', `✅ Step ${i + 1} completed (${result.latency}ms)`, 'success');
+                        completed++;
+                    } catch (error) {
+                        log('workflow-log', `❌ Step ${i + 1} failed: ${error.message}`, 'error');
+                        failed++;
+                        // Continue with next step (graceful degradation)
+                    }
+                    
+                    // Small delay to make progress visible
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                }
+
+                const duration = Date.now() - startTime;
+                const successRate = Math.round((completed / steps.length) * 100);
+                
+                log('workflow-log', `🏁 Workflow completed in ${duration}ms`, 'info');
+                log('workflow-log', `📊 Results: ${completed} successful, ${failed} failed (${successRate}% success rate)`, 'info');
+                
+            } catch (error) {
+                log('workflow-log', `💥 Workflow failed: ${error.message}`, 'error');
+            } finally {
+                currentWorkflow = null;
+                document.getElementById('stop-btn').disabled = true;
+            }
+        }
+
+        function stopWorkflow() {
+            if (currentWorkflow) {
+                currentWorkflow.cancelled = true;
+                log('workflow-log', '🛑 Stopping workflow...', 'warning');
+            }
+        }
+
+        function resetMetrics() {
+            mcpClient.resetMetrics();
+            log('health-log', '🔄 Metrics reset', 'info');
+            log('tools-log', '🔄 Metrics reset', 'info');
+            log('workflow-log', '🔄 Metrics reset', 'info');
+        }
+
+        // Initialize display
+        document.addEventListener('DOMContentLoaded', function() {
+            mcpClient.updateMetricsDisplay();
+            log('health-log', '🚀 MCP Integration Test Suite ready', 'info');
+            log('tools-log', '🔧 Individual tool tests ready', 'info');
+            log('workflow-log', '⚡ Workflow tests ready', 'info');
+        });
+    </script>
+</body>
+</html>

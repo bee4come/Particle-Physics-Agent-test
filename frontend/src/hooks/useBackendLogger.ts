@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { LogEntry } from '@/components/LogPanelFixed';
 
 const MAX_LOGS = 1000;
@@ -40,8 +40,8 @@ export const useBackendLogger = () => {
     });
   }, [createLogId]);
 
-  // Memoize logger object
-  const logger = useCallback(() => ({
+  // Memoize logger object - FIXED: Don't call as function
+  const logger = useMemo(() => ({
     info: (source: LogEntry['source'], message: string, details?: any) => 
       addLog('info', source, message, details),
     warn: (source: LogEntry['source'], message: string, details?: any) => 
@@ -211,7 +211,7 @@ export const useBackendLogger = () => {
 
   return {
     logs,
-    logger: logger(),
+    logger, // FIXED: Don't call as function
     clearLogs,
     processADKEvents
   };

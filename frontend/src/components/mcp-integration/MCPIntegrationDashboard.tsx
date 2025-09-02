@@ -470,7 +470,7 @@ function HealthView({ recentErrors, mcpClient, formatTimestamp }: {
   useEffect(() => {
     const checkHealth = async () => {
       try {
-        const response = await fetch('http://localhost:8000/health');
+        const response = await fetch('http://localhost:8002/health');
         const health = await response.json();
         setServerHealth(health);
       } catch (error) {

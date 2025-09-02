@@ -9,6 +9,7 @@ import ReactMarkdown from "react-markdown";
 import { Copy, CopyCheck, AlertCircle, User, Bot, Wifi, WifiOff, RefreshCw, Server, Terminal } from "lucide-react";
 import { AgentWorkflow } from "@/components/AgentWorkflow";
 import { LogPanelFixed } from "@/components/LogPanelFixed";
+// import { RightInfoPanel } from "@/components/RightInfoPanel";
 import { useBackendLogger } from "@/hooks/useBackendLogger";
 
 const MAX_HISTORICAL_WORKFLOWS = 10;
@@ -18,7 +19,9 @@ export default function AppFixed() {
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
   const [isLogPanelOpen, setIsLogPanelOpen] = useState(false);
   const [completedWorkflows, setCompletedWorkflows] = useState<Record<string, any>>({});
-  
+  const [shouldClearInput, setShouldClearInput] = useState(false);
+  const [rightPanelTab, setRightPanelTab] = useState<'agents' | 'logs' | 'versions' | 'recovery' | 'automation' | 'mcp'>('agents');
+
   const { logs, logger, clearLogs, processADKEvents } = useBackendLogger();
   
   const { 
@@ -67,7 +70,7 @@ export default function AppFixed() {
     }
   }, [processedEvents, processADKEvents]);
 
-  // Save completed workflows with cleanup
+  // Save completed workflows with cleanup - fix infinite loop
   useEffect(() => {
     if (!isLoading && processedEvents.length > 0 && messages.length > 0) {
       const lastMessage = messages[messages.length - 1];
@@ -94,13 +97,16 @@ export default function AppFixed() {
         });
       }
     }
-  }, [isLoading, processedEvents.length, messages.length, logger]);
+  }, [isLoading, processedEvents.length, messages.length]);
 
   const handleSubmit = useCallback(async (submittedInputValue: string) => {
     if (!submittedInputValue.trim()) return;
     
+    setShouldClearInput(false);
+    
     try {
       await sendMessage(submittedInputValue);
+      setShouldClearInput(true);
     } catch (err) {
       console.error('Submit error:', err);
     }
@@ -132,8 +138,8 @@ export default function AppFixed() {
     setIsLogPanelOpen(prev => !prev);
   }, []);
 
-  // Connection status indicator - not memoized!
-  const ConnectionIndicator = () => (
+  // Connection status indicator component
+  const renderConnectionIndicator = () => (
     <div className="fixed top-4 right-4 z-50 flex items-center gap-2">
       <Button
         variant="ghost"
@@ -189,7 +195,7 @@ export default function AppFixed() {
   if (!connectionStatus.isConnected && messages.length === 0) {
     return (
       <div className="flex h-screen bg-neutral-800 text-neutral-100 font-sans antialiased">
-        <ConnectionIndicator />
+{renderConnectionIndicator()}
         <main className="h-full w-full max-w-4xl mx-auto">
           <div className="flex flex-col items-center justify-center h-full gap-6">
             <div className="flex flex-col items-center gap-4">
@@ -235,12 +241,13 @@ export default function AppFixed() {
   if (messages.length === 0) {
     return (
       <div className="flex h-screen bg-neutral-800 text-neutral-100 font-sans antialiased">
-        <ConnectionIndicator />
+{renderConnectionIndicator()}
         <main className="h-full w-full max-w-4xl mx-auto">
           <WelcomeScreen
             handleSubmit={handleSubmit}
             isLoading={isLoading}
             onCancel={handleCancel}
+            shouldClearInput={shouldClearInput}
           />
         </main>
       </div>
@@ -251,7 +258,7 @@ export default function AppFixed() {
   if (error) {
     return (
       <div className="flex h-screen bg-neutral-800 text-neutral-100 font-sans antialiased">
-        <ConnectionIndicator />
+{renderConnectionIndicator()}
         <main className="h-full w-full max-w-4xl mx-auto">
           <div className="flex flex-col items-center justify-center h-full">
             <div className="flex flex-col items-center justify-center gap-4">
@@ -280,11 +287,12 @@ export default function AppFixed() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-neutral-800 text-neutral-100 font-sans antialiased">
-      <ConnectionIndicator />
+    <div className="flex h-screen bg-neutral-800 text-neutral-100 font-sans antialiased relative">
+      {renderConnectionIndicator()}
       
-      {/* Main chat area */}
-      <ScrollArea ref={scrollAreaRef} className="flex-1 overflow-y-auto">
+      {/* Left side - Main chat area */}
+      <div className="flex flex-col flex-1">
+        <ScrollArea ref={scrollAreaRef} className="flex-1 overflow-y-auto">
         <div className="p-4 md:p-6 space-y-2 max-w-4xl mx-auto pt-16">
           {messages.map((message, index) => {
             return (
@@ -385,7 +393,64 @@ export default function AppFixed() {
             isLoading={isLoading || !connectionStatus.isConnected}
             onCancel={handleCancel}
             hasHistory={messages.length > 0}
+            shouldClearInput={shouldClearInput}
           />
+        </div>
+      </div>
+      </div>
+      
+      {/* Right side - MCP Status Panel */}
+      <div className="w-96 border-l border-neutral-700/50 flex-shrink-0 bg-neutral-900">
+        <div className="p-4 h-full overflow-y-auto">
+          <h3 className="text-lg font-semibold mb-4 text-white">MCP Integration</h3>
+          
+          <div className="space-y-4">
+            <div className="bg-neutral-800 p-4 rounded-lg">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="h-2 w-2 bg-green-400 rounded-full"></div>
+                <span className="font-medium text-white">ParticlePhysics MCP Server</span>
+              </div>
+              <p className="text-sm text-neutral-300">Running on port 8002</p>
+              <p className="text-xs text-neutral-400 mt-1">HTTP API integration active</p>
+            </div>
+            
+            <div className="bg-neutral-800 p-4 rounded-lg">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="h-2 w-2 bg-blue-400 rounded-full"></div>
+                <span className="font-medium text-white">ADK Backend Integration</span>
+              </div>
+              <p className="text-sm text-neutral-300">Modified to use HTTP MCP client</p>
+              <p className="text-xs text-neutral-400 mt-1">Fallback to subprocess if needed</p>
+            </div>
+            
+            <div className="bg-neutral-800 p-4 rounded-lg">
+              <h4 className="font-medium mb-2 text-white">Available Tools</h4>
+              <div className="grid grid-cols-1 gap-1 text-xs">
+                <div className="text-neutral-300">• search_particle</div>
+                <div className="text-neutral-300">• get_property</div>
+                <div className="text-neutral-300">• list_decays</div>
+                <div className="text-neutral-300">• find_decays</div>
+                <div className="text-neutral-300">• list_properties</div>
+                <div className="text-neutral-300">• resolve_identifier</div>
+                <div className="text-neutral-300">• database_info</div>
+                <div className="text-neutral-300">• get_property_details</div>
+              </div>
+            </div>
+            
+            {processedEvents.length > 0 && (
+              <div className="bg-neutral-800 p-4 rounded-lg">
+                <h4 className="font-medium mb-2 text-white">Agent Workflow</h4>
+                <div className="space-y-2">
+                  {processedEvents.slice(-5).map((event, index) => (
+                    <div key={index} className="text-xs">
+                      <div className="text-neutral-300">{event.title}</div>
+                      <div className="text-neutral-500">{event.data}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
       

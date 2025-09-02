@@ -47,7 +47,7 @@ export interface MCPClientConfig {
 }
 
 const ORIGIN = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5173';
-const ENDPOINT = "http://localhost:8000/mcp";
+const ENDPOINT = "http://localhost:8002/mcp";
 const DEFAULT_TIMEOUT = 12_000;
 const DEFAULT_MAX_RETRIES = 2;
 const DEFAULT_RETRY_DELAY = 1000;
