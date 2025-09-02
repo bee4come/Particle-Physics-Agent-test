@@ -37,7 +37,10 @@ export default function AppFixed() {
     stop,
     checkConnection,
     pollingStatus,
-    pollingState
+    pollingState,
+    sseEnabled,
+    sseConnectionStatus,
+    toggleSSE
   } = useADKEnhanced();
 
   // Auto-scroll to bottom
@@ -252,6 +255,13 @@ Database: PDG 2025 edition
               {connectionStatus.serverInfo ? (
                 <>
                   Connected • {connectionStatus.serverInfo.edition || 'ADK'} • 
+                  {sseEnabled ? (
+                    <span className={`${sseConnectionStatus.connected ? 'text-green-500' : 'text-yellow-500'}`}>
+                      SSE {sseConnectionStatus.connected ? '✓' : '⚠'}
+                    </span>
+                  ) : (
+                    <span className="text-blue-500">Polling</span>
+                  )} • 
                   Uptime {Math.floor((connectionStatus.serverInfo.uptime || 0) / 60)}m • 
                   Tools: {connectionStatus.serverInfo.tools_count || 0}
                 </>

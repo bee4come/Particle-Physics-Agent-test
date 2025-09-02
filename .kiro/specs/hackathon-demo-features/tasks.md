@@ -207,13 +207,13 @@
   - Implement pedantic→non-pedantic degradation controls
   - _Requirements: 2.1, 2.2, 2.4_
 
-- [ ] 13.4 Deduplicate and consolidate repeated workflow stages
+- [x] 13.4 Deduplicate and consolidate repeated workflow stages
   - Merge duplicate "Planning Request" cards with same stepId
   - Display repetition count (x2, x3) with expandable details
   - Implement stage folding for repeated operations
   - _Requirements: 1.3, 5.2_
 
-- [ ] 13.5 Enhance backend connection health monitoring
+- [x] 13.5 Enhance backend connection health monitoring
   - Replace generic "Backend Connected" with detailed system info
   - Display edition, db_path, uptime, tools_count, and CORS status
   - Add one-click "Copy reproduction info" for citations and debugging
@@ -227,7 +227,7 @@
   - _Requirements: 3.1, 3.4_
 
 - [ ] 14. Enhanced user experience and observability (P1 - This Week)
-- [ ] 14.1 Implement timeline swimlane grouping with noise reduction
+- [x] 14.1 Implement timeline swimlane grouping with noise reduction
   - Group similar stages (Planning/Transfer/Search) with P50/P95 latency display
   - Add "Collapse all / Expand all" controls for workflow stages
   - Implement sticky positioning for particle headers during scroll

@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useAdvancedPolling, EnhancedEvent, TraceInfo } from './useAdvancedPolling';
+import { useSSEClient, SSEEvent } from './useSSEClient';
 
 export interface ADKMessage {
   id: string;
@@ -55,6 +56,124 @@ export const useADKEnhanced = () => {
     getPollingStatus,
     pollingState 
   } = useAdvancedPolling();
+
+  // SSE客户端，优先使用SSE，失败时自动降级到轮询
+  const [sseEnabled, setSSEEnabled] = useState(true);
+  const [realTimeEvents, setRealTimeEvents] = useState<SSEEvent[]>([]);
+  
+  const handleSSEEvent = useCallback((event: SSEEvent) => {
+    console.log('Real-time SSE event received:', event);
+    
+    // Convert SSE events to ProcessedEvents for real-time display
+    if (event.type.startsWith('step.') || event.type.startsWith('tool.')) {
+      const processedEvent: ProcessedEvent = {
+        title: getEventTitle(event),
+        data: getEventData(event),
+        timestamp: event.ts * 1000,
+        author: event.agent || event.tool || 'system',
+        traceInfo: {
+          traceId: event.traceId,
+          stepId: event.stepId,
+        },
+        status: event.status === 'err' ? 'error' : event.status === 'ok' ? 'success' : 'pending'
+      };
+      
+      setProcessedEvents(prev => {
+        // Deduplicate based on traceId + stepId + type
+        const key = `${event.traceId}-${event.stepId}-${event.type}`;
+        const exists = prev.some(e => 
+          e.traceInfo?.traceId === event.traceId && 
+          e.traceInfo?.stepId === event.stepId &&
+          e.title === processedEvent.title
+        );
+        
+        if (!exists) {
+          return [...prev, processedEvent];
+        }
+        return prev;
+      });
+    }
+    
+    setRealTimeEvents(prev => [...prev, event]);
+  }, []);
+
+  const handleSSEConnectionChange = useCallback((status: any) => {
+    console.log('SSE connection status:', status);
+    
+    // Update connection status with SSE info
+    setConnectionStatus(prev => ({
+      ...prev,
+      isConnected: status.connected,
+      error: status.error
+    }));
+    
+    // If SSE fails completely, fall back to polling
+    if (!status.connected && status.reconnectAttempts >= 5) {
+      console.log('SSE failed, falling back to polling permanently');
+      setSSEEnabled(false);
+    }
+  }, []);
+
+  const { 
+    events: sseEvents, 
+    connectionStatus: sseConnectionStatus,
+    connect: connectSSE,
+    disconnect: disconnectSSE,
+    clearEvents: clearSSEEvents
+  } = useSSEClient({
+    url: 'http://localhost:8001/events',
+    enabled: sseEnabled,
+    maxReconnectAttempts: 10,
+    reconnectDelayMs: 1000,
+    pollingFallbackDelayMs: 10000,
+    onEvent: handleSSEEvent,
+    onConnectionChange: handleSSEConnectionChange,
+  });
+
+  // Helper functions to convert SSE events to display format
+  const getEventTitle = useCallback((event: SSEEvent): string => {
+    switch (event.type) {
+      case 'step.transfer':
+        return '🔄 Agent Transfer';
+      case 'step.planning':
+        return '📋 Planning';
+      case 'step.search':
+        return '📚 Knowledge Search';
+      case 'step.validation':
+        return '⚖️ Physics Validation';
+      case 'step.generation':
+        return '🎨 Diagram Generation';
+      case 'step.compilation':
+        return '⚙️ LaTeX Compilation';
+      case 'tool.start':
+        return `🔧 ${event.tool} Starting`;
+      case 'tool.end':
+        return `✅ ${event.tool} Complete`;
+      case 'job.start':
+        return '🚀 Workflow Started';
+      case 'job.end':
+        return '🎯 Workflow Complete';
+      default:
+        return `📡 ${event.type}`;
+    }
+  }, []);
+
+  const getEventData = useCallback((event: SSEEvent): string => {
+    if (event.payload?.summary) {
+      return event.payload.summary;
+    }
+    
+    switch (event.type) {
+      case 'step.transfer':
+        return `Transferring to next agent`;
+      case 'tool.start':
+        return `Executing ${event.tool}`;
+      case 'tool.end':
+        return `Completed in ${event.latency_ms}ms`;
+      default:
+        return event.message || 'Processing...';
+    }
+  }, []);
 
   // Enhanced connection check with server info
   const checkConnection = useCallback(async (): Promise<boolean> => {
@@ -330,14 +449,16 @@ export const useADKEnhanced = () => {
       abortControllerRef.current.abort();
     }
     
-    stopPolling();
+    // Clear previous events for new request
+    setEvents([]);
+    setProcessedEvents([]);
+    setRealTimeEvents([]);
+    clearSSEEvents();
     
     // Create new abort controller
     abortControllerRef.current = new AbortController();
     
     setIsLoading(true);
-    setEvents([]);
-    setProcessedEvents([]);
     setError(null);
     setIsWorkflowComplete(false);
     
@@ -392,29 +513,47 @@ export const useADKEnhanced = () => {
         console.error('Request error:', err);
       });
       
-      // Start enhanced polling
-      startPolling(async () => {
-        const sessionId = sessionIdRef.current || currentSessionId;
-        if (sessionId) {
-          await pollSession(sessionId);
-        }
-      });
+      // Primary: Use SSE for real-time events (B-B-B方案)
+      if (sseEnabled) {
+        console.log('Using SSE for real-time events');
+        // SSE events are handled by handleSSEEvent callback
+        
+        // Fallback polling for final result extraction only
+        setTimeout(() => {
+          startPolling(async () => {
+            const sessionId = sessionIdRef.current || currentSessionId;
+            if (sessionId) {
+              await pollSession(sessionId);
+            }
+          });
+        }, 5000); // Start polling after 5s as fallback for completion detection
+      } else {
+        console.log('Fallback to polling mode');
+        // Fallback: Use traditional polling
+        startPolling(async () => {
+          const sessionId = sessionIdRef.current || currentSessionId;
+          if (sessionId) {
+            await pollSession(sessionId);
+          }
+        });
+      }
 
     } catch (error: any) {
       setError(`Failed to start request: ${error.message}`);
       setIsLoading(false);
       stopPolling();
     }
-  }, [checkConnection, pollSession, stopPolling, startPolling]);
+  }, [checkConnection, pollSession, stopPolling, startPolling, sseEnabled, clearSSEEvents]);
 
   const stop = useCallback(() => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
     stopPolling();
+    disconnectSSE();
     setIsLoading(false);
     setError(null);
-  }, [stopPolling]);
+  }, [stopPolling, disconnectSSE]);
 
   // Initialize connection monitoring
   useEffect(() => {
@@ -439,6 +578,11 @@ export const useADKEnhanced = () => {
     stop,
     checkConnection,
     pollingStatus: getPollingStatus(),
-    pollingState
+    pollingState,
+    // SSE specific exports
+    sseEnabled,
+    sseConnectionStatus,
+    realTimeEvents,
+    toggleSSE: () => setSSEEnabled(!sseEnabled)
   };
 };
