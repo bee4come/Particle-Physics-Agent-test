@@ -26,7 +26,6 @@ export default function AppFixed() {
   const [completedWorkflows, setCompletedWorkflows] = useState<Record<string, any>>({});
   const [shouldClearInput, setShouldClearInput] = useState(false);
   const [rightPanelTab, setRightPanelTab] = useState<'agents' | 'logs' | 'versions' | 'recovery' | 'automation' | 'mcp' | 'dashboard'>('agents');
-  const [structuredErrors, setStructuredErrors] = useState<StructuredError[]>([]);
   const [showDashboard, setShowDashboard] = useState(false);
 
   const { logs, logger, clearLogs, processADKEvents } = useBackendLogger();
@@ -424,7 +423,7 @@ Database: PDG 2025 edition
       {renderConnectionIndicator()}
       
       {/* Left side - Main chat area */}
-      <div className="flex flex-col flex-1">
+      <div className="flex flex-col flex-1 xl:pr-[24rem] min-w-0">
         <ScrollArea ref={scrollAreaRef} className="flex-1 overflow-y-auto">
         <div className="p-4 md:p-6 space-y-2 max-w-4xl mx-auto pt-16">
           {messages.map((message, index) => {
@@ -562,7 +561,7 @@ Database: PDG 2025 edition
       </div>
       
       {/* Right side - Tabbed Panel */}
-      <div className="w-96 border-l border-neutral-700/50 flex-shrink-0 bg-neutral-900">
+      <div className="w-96 xl:w-96 border-l border-neutral-700/50 flex-shrink-0 bg-neutral-900 xl:absolute xl:right-0 xl:top-0 xl:h-full">
         <div className="h-full overflow-hidden flex flex-col">
           {/* Tab Header */}
           <div className="flex border-b border-neutral-700/50 bg-neutral-800/50">

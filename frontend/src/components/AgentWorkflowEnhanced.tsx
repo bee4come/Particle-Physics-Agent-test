@@ -168,19 +168,21 @@ export function AgentWorkflowEnhanced({ events, isLoading, isCompleted, pollingS
   return (
     <div className="relative group max-w-[85%] md:max-w-[80%] rounded-xl p-3 shadow-sm break-words bg-neutral-700 text-neutral-100 rounded-bl-none w-full">
       {/* Enhanced Header */}
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <h4 className="text-sm font-medium text-neutral-200">
+      <div className="flex flex-wrap items-center gap-2 p-2 mb-3">
+        {/* Title area - can truncate, allows shrinking */}
+        <div className="flex-1 min-w-0 flex items-center gap-2">
+          <h4 className="text-sm font-medium text-neutral-200 truncate">
             🔄 Agent Workflow {isCompleted && '(Completed)'}
           </h4>
           {eventGroups.length > 1 && (
-            <Badge variant="secondary" className="text-xs">
+            <Badge variant="secondary" className="text-xs shrink-0">
               {eventGroups.length} stages
             </Badge>
           )}
         </div>
         
-        <div className="flex items-center gap-1">
+        {/* Button area - no shrinking, can wrap on small screens */}
+        <div className="flex items-center gap-1 shrink-0">
           {events.length > 0 && (
             <>
               <Button

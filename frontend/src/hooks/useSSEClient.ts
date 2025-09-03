@@ -61,17 +61,19 @@ export const useSSEClient = ({
   const reconnectAttemptsRef = useRef(0);
 
   const updateConnectionStatus = useCallback((update: Partial<SSEConnectionStatus>) => {
-    const newStatus = {
-      connected: connectionStatus.connected,
-      error: connectionStatus.error,
-      reconnectAttempts: reconnectAttemptsRef.current,
-      lastEventId: lastEventIdRef.current,
-      subscriberCount: connectionStatus.subscriberCount,
-      ...update,
-    };
-    setConnectionStatus(newStatus);
-    onConnectionChange?.(newStatus);
-  }, [connectionStatus, onConnectionChange]);
+    setConnectionStatus(prev => {
+      const newStatus = {
+        connected: prev.connected,
+        error: prev.error,
+        reconnectAttempts: reconnectAttemptsRef.current,
+        lastEventId: lastEventIdRef.current,
+        subscriberCount: prev.subscriberCount,
+        ...update,
+      };
+      onConnectionChange?.(newStatus);
+      return newStatus;
+    });
+  }, [onConnectionChange]);
 
   const handleEvent = useCallback((event: SSEEvent) => {
     console.log('SSE Event received:', event.type, event);

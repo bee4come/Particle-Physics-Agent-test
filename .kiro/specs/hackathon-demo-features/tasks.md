@@ -186,21 +186,21 @@
   - _Requirements: 7.1, 7.2_
 
 - [ ] 13. Critical stability and performance optimizations (P0 - Must Fix)
-- [ ] 13.1 Replace polling with streaming events (SSE/WebSocket)
+- [x] 13.1 Replace polling with streaming events (SSE/WebSocket)
   - Replace "polling every 2s" with Server-Sent Events for real-time updates
   - Implement EventSource subscription with traceId/stepId/particle tracking
   - Add backend /events endpoint for streaming workflow events
   - Eliminate UI stuttering and timing inconsistencies during concurrent operations
   - _Requirements: 1.2, 5.1, 5.2_
 
-- [ ] 13.2 Implement request-response traceability system
+- [x] 13.2 Implement request-response traceability system
   - Add correlation IDs to all tool invocations for end-to-end tracking
   - Display timeline nodes with stepName • duration • traceId format
   - Implement expandable request/response details with JSON truncation
   - Enable click-through debugging from frontend to backend logs
   - _Requirements: 3.1, 3.3, 5.1_
 
-- [ ] 13.3 Build structured error cards with actionable controls
+- [x] 13.3 Build structured error cards with actionable controls
   - Categorize errors by source (LaTeX/TikZ/Physics/MCP/Network)
   - Provide human-readable explanations and specific suggestions
   - Add one-click retry/fallback/ignore buttons for each error type
@@ -233,7 +233,7 @@
   - Implement sticky positioning for particle headers during scroll
   - _Requirements: 1.3, 5.2_
 
-- [ ] 14.2 Build tool orchestration heatmap dashboard
+- [x] 14.2 Build tool orchestration heatmap dashboard
   - Create aggregated metrics by tool: call count, failure rate, P95 latency
   - Display top N recent errors with 5-second refresh intervals
   - Add circuit breaker status indicators with yellow warnings for high failure rates

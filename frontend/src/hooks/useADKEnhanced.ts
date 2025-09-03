@@ -67,7 +67,7 @@ export const useADKEnhanced = () => {
   const [processedEvents, setProcessedEvents] = useState<ProcessedEvent[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>({ 
-    isConnected: true, 
+    isConnected: false, 
     lastChecked: Date.now() 
   });
   const [isWorkflowComplete, setIsWorkflowComplete] = useState(false);
@@ -87,7 +87,7 @@ export const useADKEnhanced = () => {
   } = useAdvancedPolling();
 
   // SSE客户端，优先使用SSE，失败时自动降级到轮询
-  const [sseEnabled, setSSEEnabled] = useState(true);
+  const [sseEnabled, setSSEEnabled] = useState(false); // Disable SSE by default until server is confirmed working
   const [realTimeEvents, setRealTimeEvents] = useState<SSEEvent[]>([]);
   
   const handleSSEEvent = useCallback((event: SSEEvent) => {
@@ -607,7 +607,7 @@ export const useADKEnhanced = () => {
         abortControllerRef.current.abort();
       }
     };
-  }, [checkConnection, stopPolling]);
+  }, []); // Remove dependencies to prevent infinite loops
 
   // Error handling functions
   const dismissError = useCallback((errorId: string) => {

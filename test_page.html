@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Frontend</title>
+</head>
+<body>
+    <h1>Testing Frontend Connection</h1>
+    <div id="test-output"></div>
+    
+    <script>
+        console.log('Test page loaded');
+        
+        // Test if we can fetch from the frontend server
+        fetch('http://localhost:5176/app/src/main.tsx')
+            .then(response => {
+                console.log('Fetch response:', response.status);
+                document.getElementById('test-output').innerHTML = 
+                    '<p>Frontend server response: ' + response.status + '</p>';
+                return response.text();
+            })
+            .then(data => {
+                console.log('Data length:', data.length);
+                document.getElementById('test-output').innerHTML += 
+                    '<p>Data received: ' + data.length + ' characters</p>';
+            })
+            .catch(error => {
+                console.error('Fetch error:', error);
+                document.getElementById('test-output').innerHTML = 
+                    '<p style="color: red;">Error: ' + error.message + '</p>';
+            });
+    </script>
+</body>
+</html>
