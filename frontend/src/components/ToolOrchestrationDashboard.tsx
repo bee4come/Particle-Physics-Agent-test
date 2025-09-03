@@ -42,15 +42,16 @@ interface ToolOrchestrationDashboardProps {
   }>;
   isLive?: boolean;
   onRefresh?: () => void;
+  onExpandedChange?: (isExpanded: boolean) => void;
 }
 
 const categoryColors = {
-  mcp: 'bg-blue-500',
-  search: 'bg-green-500', 
-  validation: 'bg-yellow-500',
-  generation: 'bg-purple-500',
-  compilation: 'bg-red-500',
-  analysis: 'bg-cyan-500'
+  mcp: 'rgb(59 130 246)',        // blue-500
+  search: 'rgb(34 197 94)',      // green-500 
+  validation: 'rgb(245 158 11)', // amber-500
+  generation: 'rgb(168 85 247)', // purple-500
+  compilation: 'rgb(239 68 68)', // red-500
+  analysis: 'rgb(6 182 212)'     // cyan-500
 };
 
 const categoryLabels = {
@@ -86,19 +87,18 @@ function formatNumber(num: number): string {
 
 function getIntensityColor(value: number, max: number): string {
   const intensity = Math.min(value / max, 1);
-  if (intensity === 0) return 'bg-neutral-800';
-  if (intensity <= 0.2) return 'bg-green-900/50';
-  if (intensity <= 0.4) return 'bg-green-700/50';
-  if (intensity <= 0.6) return 'bg-yellow-600/50';
-  if (intensity <= 0.8) return 'bg-orange-500/50';
-  return 'bg-red-500/50';
+  if (intensity === 0) return 'rgb(var(--surface-secondary))';
+  if (intensity <= 0.2) return 'rgb(var(--status-success) / 0.3)';
+  if (intensity <= 0.4) return 'rgb(var(--status-success) / 0.5)';
+  if (intensity <= 0.6) return 'rgb(var(--status-warning) / 0.5)';
+  if (intensity <= 0.8) return 'rgb(var(--status-error) / 0.4)';
+  return 'rgb(var(--status-error) / 0.6)';
 }
 
-export function ToolOrchestrationDashboard({ events, isLive, onRefresh }: ToolOrchestrationDashboardProps) {
+export function ToolOrchestrationDashboard({ events, isLive, onRefresh, onExpandedChange }: ToolOrchestrationDashboardProps) {
   const [timeRange, setTimeRange] = useState<'1h' | '6h' | '24h' | '7d'>('6h');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'calls' | 'duration' | 'errors' | 'performance'>('calls');
-  const [isExpanded, setIsExpanded] = useState(false);
 
   // Process events into tool metrics
   const toolMetrics = useMemo(() => {
@@ -237,200 +237,263 @@ export function ToolOrchestrationDashboard({ events, isLive, onRefresh }: ToolOr
     toolMetrics.reduce((sum, m) => sum + m.successRate, 0) / toolMetrics.length : 0;
 
   return (
-    <div className={`bg-neutral-900/50 border border-neutral-700 rounded-lg p-4 space-y-4 ${isExpanded ? 'fixed inset-4 z-50 overflow-y-auto' : ''}`}>
+    <div className="bg-card text-card-foreground border border-border rounded-xl shadow-sm transition-all duration-200" style={{ padding: 'var(--space-lg)', gap: 'var(--space-lg)' }}>
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <BarChart3 className="h-5 w-5 text-blue-500" />
-            <h3 className="text-lg font-semibold text-white">Tool Orchestration Dashboard</h3>
-            {isLive && (
-              <Badge variant="outline" className="text-green-400 border-green-400/30 animate-pulse">
-                LIVE
-              </Badge>
-            )}
-          </div>
+      <div className="flex items-center justify-between" style={{ marginBottom: 'var(--space-lg)' }}>
+        <div className="flex items-center" style={{ gap: 'var(--space-md)', minWidth: 0, flex: 1 }}>
+          <BarChart3 className="h-5 w-5 flex-shrink-0" style={{ color: 'rgb(var(--interactive-primary))' }} />
+          <h3 className="text-lg font-semibold overflow-safe" style={{ color: 'rgb(var(--text-primary))' }}>
+            Tool Orchestration Dashboard
+          </h3>
+          {isLive && (
+            <Badge 
+              variant="outline" 
+              className="status-success animate-pulse flex-shrink-0"
+              style={{ fontSize: 'var(--text-xs)' }}
+            >
+              LIVE
+            </Badge>
+          )}
         </div>
         
-        <div className="flex items-center gap-2">
+        <div className="flex items-center flex-shrink-0" style={{ gap: 'var(--space-sm)' }}>
           {onRefresh && (
-            <Button variant="ghost" size="sm" onClick={onRefresh} className="h-7 px-2">
-              <RefreshCw className="h-3 w-3" />
-            </Button>
+            <button 
+              onClick={onRefresh}
+              className="btn-unified-ghost"
+              style={{ padding: 'var(--space-sm)', height: '32px', width: '32px' }}
+              title="Refresh dashboard"
+            >
+              <RefreshCw className="h-4 w-4" />
+            </button>
           )}
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="h-7 px-2"
-          >
-            <Maximize2 className="h-3 w-3" />
-          </Button>
         </div>
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="bg-neutral-800/50 border-neutral-700">
-          <CardContent className="p-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-neutral-400">Total Calls</p>
-                <p className="text-xl font-semibold text-white">{formatNumber(totalCalls)}</p>
-              </div>
-              <Activity className="h-4 w-4 text-blue-500" />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4" style={{ marginBottom: 'var(--space-lg)' }}>
+        <div className="dashboard-metric">
+          <div className="flex items-center justify-between h-full">
+            <div className="min-w-0 flex-1">
+              <p className="text-xs text-muted-foreground">Total Calls</p>
+              <p className="text-lg font-semibold text-card-foreground">{formatNumber(totalCalls)}</p>
             </div>
-          </CardContent>
-        </Card>
+            <Activity className="h-5 w-5 flex-shrink-0" style={{ color: 'rgb(var(--interactive-primary))' }} />
+          </div>
+        </div>
         
-        <Card className="bg-neutral-800/50 border-neutral-700">
-          <CardContent className="p-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-neutral-400">Avg Duration</p>
-                <p className="text-xl font-semibold text-white">{formatDuration(avgDuration)}</p>
-              </div>
-              <Clock className="h-4 w-4 text-green-500" />
+        <div className="dashboard-metric">
+          <div className="flex items-center justify-between h-full">
+            <div className="min-w-0 flex-1">
+              <p className="text-xs text-muted-foreground">Avg Duration</p>
+              <p className="text-lg font-semibold text-card-foreground">{formatDuration(avgDuration)}</p>
             </div>
-          </CardContent>
-        </Card>
+            <Clock className="h-5 w-5 flex-shrink-0" style={{ color: 'rgb(var(--status-success))' }} />
+          </div>
+        </div>
         
-        <Card className="bg-neutral-800/50 border-neutral-700">
-          <CardContent className="p-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-neutral-400">Success Rate</p>
-                <p className="text-xl font-semibold text-white">{overallSuccessRate.toFixed(1)}%</p>
-              </div>
-              <TrendingUp className="h-4 w-4 text-green-500" />
+        <div className="dashboard-metric">
+          <div className="flex items-center justify-between h-full">
+            <div className="min-w-0 flex-1">
+              <p className="text-xs text-muted-foreground">Success Rate</p>
+              <p className="text-lg font-semibold text-card-foreground">{overallSuccessRate.toFixed(1)}%</p>
             </div>
-          </CardContent>
-        </Card>
+            <TrendingUp className="h-5 w-5 flex-shrink-0" style={{ color: 'rgb(var(--status-success))' }} />
+          </div>
+        </div>
         
-        <Card className="bg-neutral-800/50 border-neutral-700">
-          <CardContent className="p-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-neutral-400">Active Tools</p>
-                <p className="text-xl font-semibold text-white">{toolMetrics.length}</p>
-              </div>
-              <Zap className="h-4 w-4 text-yellow-500" />
+        <div className="dashboard-metric">
+          <div className="flex items-center justify-between h-full">
+            <div className="min-w-0 flex-1">
+              <p className="text-xs text-muted-foreground">Active Tools</p>
+              <p className="text-lg font-semibold text-card-foreground">{toolMetrics.length}</p>
             </div>
-          </CardContent>
-        </Card>
+            <Zap className="h-5 w-5 flex-shrink-0" style={{ color: 'rgb(var(--status-warning))' }} />
+          </div>
+        </div>
       </div>
 
       {/* Controls */}
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="flex items-center gap-1">
-          <span className="text-xs text-neutral-400">Time:</span>
-          {(['1h', '6h', '24h', '7d'] as const).map(range => (
-            <Button
-              key={range}
-              variant={timeRange === range ? "secondary" : "ghost"}
-              size="sm"
-              onClick={() => setTimeRange(range)}
-              className="h-6 px-2 text-xs"
-            >
-              {range}
-            </Button>
-          ))}
+      <div className="space-y-3" style={{ marginBottom: 'var(--space-lg)' }}>
+        <div className="flex flex-wrap items-center" style={{ gap: 'var(--space-md)' }}>
+          <div className="flex items-center" style={{ gap: 'var(--space-sm)' }}>
+            <span className="text-xs" style={{ color: 'rgb(var(--text-secondary))', whiteSpace: 'nowrap' }}>Time:</span>
+            <div className="flex" style={{ gap: 'var(--space-xs)' }}>
+              {(['1h', '6h', '24h', '7d'] as const).map(range => (
+                <button
+                  key={range}
+                  onClick={() => setTimeRange(range)}
+                  className={timeRange === range ? 'btn-unified-primary' : 'btn-unified-ghost'}
+                  style={{ 
+                    padding: '4px 8px', 
+                    fontSize: 'var(--text-xs)',
+                    minWidth: '36px',
+                    height: '28px'
+                  }}
+                >
+                  {range}
+                </button>
+              ))}
+            </div>
+          </div>
+          
+          <div className="flex items-center" style={{ gap: 'var(--space-sm)' }}>
+            <span className="text-xs" style={{ color: 'rgb(var(--text-secondary))', whiteSpace: 'nowrap' }}>Sort:</span>
+            <div className="flex" style={{ gap: 'var(--space-xs)' }}>
+              {([
+                { key: 'calls', label: 'Calls' },
+                { key: 'duration', label: 'Duration' }, 
+                { key: 'errors', label: 'Errors' },
+                { key: 'performance', label: 'Performance' }
+              ] as const).map(({ key, label }) => (
+                <button
+                  key={key}
+                  onClick={() => setSortBy(key)}
+                  className={sortBy === key ? 'btn-unified-primary' : 'btn-unified-ghost'}
+                  style={{ 
+                    padding: '4px 8px', 
+                    fontSize: 'var(--text-xs)',
+                    height: '28px'
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
         
-        <div className="flex items-center gap-1">
-          <span className="text-xs text-neutral-400">Category:</span>
-          <Button
-            variant={categoryFilter === 'all' ? "secondary" : "ghost"}
-            size="sm"
+        <div className="flex flex-wrap items-center" style={{ gap: 'var(--space-sm)' }}>
+          <span className="text-xs" style={{ color: 'rgb(var(--text-secondary))', whiteSpace: 'nowrap' }}>Category:</span>
+          <button
             onClick={() => setCategoryFilter('all')}
-            className="h-6 px-2 text-xs"
+            className={categoryFilter === 'all' ? 'btn-unified-primary' : 'btn-unified-ghost'}
+            style={{ 
+              padding: '4px 8px', 
+              fontSize: 'var(--text-xs)',
+              height: '28px'
+            }}
           >
             All
-          </Button>
+          </button>
           {Object.entries(categoryLabels).map(([key, label]) => (
-            <Button
+            <button
               key={key}
-              variant={categoryFilter === key ? "secondary" : "ghost"}
-              size="sm"
               onClick={() => setCategoryFilter(key)}
-              className="h-6 px-2 text-xs"
+              className={categoryFilter === key ? 'btn-unified-primary' : 'btn-unified-ghost'}
+              style={{ 
+                padding: '4px 8px', 
+                fontSize: 'var(--text-xs)',
+                height: '28px'
+              }}
             >
-              {label}
-            </Button>
-          ))}
-        </div>
-        
-        <div className="flex items-center gap-1">
-          <span className="text-xs text-neutral-400">Sort:</span>
-          {([
-            { key: 'calls', label: 'Calls' },
-            { key: 'duration', label: 'Duration' }, 
-            { key: 'errors', label: 'Errors' },
-            { key: 'performance', label: 'Performance' }
-          ] as const).map(({ key, label }) => (
-            <Button
-              key={key}
-              variant={sortBy === key ? "secondary" : "ghost"}
-              size="sm"
-              onClick={() => setSortBy(key)}
-              className="h-6 px-2 text-xs"
-            >
-              {label}
-            </Button>
+              <span className="overflow-safe">{label}</span>
+            </button>
           ))}
         </div>
       </div>
 
-      <div className={`grid gap-4 ${isExpanded ? 'grid-cols-1 xl:grid-cols-2' : 'grid-cols-1'}`}>
+      <div className="space-y-6">
         {/* Tool Metrics Table */}
-        <Card className="bg-neutral-800/30 border-neutral-700">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Tool Performance Metrics</CardTitle>
-          </CardHeader>
-          <CardContent className="p-3">
-            <div className="space-y-2 max-h-64 overflow-y-auto">
+        <div className="bg-card text-card-foreground border border-border rounded-xl shadow-sm">
+          <div style={{ padding: 'var(--space-lg)' }}>
+            <h4 className="text-sm font-medium" style={{ color: 'rgb(var(--text-primary))', marginBottom: 'var(--space-md)' }}>
+              Tool Performance Metrics
+            </h4>
+            <div 
+              className="space-y-2 scrollbar-themed" 
+              style={{ 
+                maxHeight: '320px', 
+                overflowY: 'auto',
+                paddingRight: 'var(--space-xs)'
+              }}
+            >
               {filteredMetrics.slice(0, 12).map((metric, index) => (
-                <div key={metric.name} className="flex items-center justify-between p-2 rounded bg-neutral-800/30">
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <div className={`w-3 h-3 rounded-full ${categoryColors[metric.category]}`} />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-white truncate">{metric.name}</span>
-                        <Badge variant="outline" className="text-xs">
-                          {categoryLabels[metric.category]}
-                        </Badge>
-                      </div>
-                      <div className="flex items-center gap-4 mt-1">
-                        <span className="text-xs text-neutral-400">{metric.calls} calls</span>
-                        <span className="text-xs text-neutral-400">{formatDuration(metric.avgDuration)} avg</span>
-                        <span className="text-xs text-neutral-400">{metric.successRate.toFixed(1)}% success</span>
-                        {metric.errorCount > 0 && (
-                          <span className="text-xs text-red-400">{metric.errorCount} errors</span>
-                        )}
+                <div 
+                  key={metric.name} 
+                  className="bg-card text-card-foreground border border-border/50 rounded-lg hover:border-border hover:shadow-sm transition-all duration-200"
+                  style={{ padding: 'var(--space-md)', marginBottom: 'var(--space-sm)' }}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center flex-1 min-w-0" style={{ gap: 'var(--space-md)' }}>
+                      <div 
+                        className="w-3 h-3 rounded-full flex-shrink-0" 
+                        style={{ backgroundColor: categoryColors[metric.category] }}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center" style={{ gap: 'var(--space-sm)', marginBottom: 'var(--space-xs)' }}>
+                          <span className="text-sm font-medium overflow-safe" style={{ color: 'rgb(var(--text-primary))' }}>
+                            {metric.name}
+                          </span>
+                          <span 
+                            className="text-xs px-2 py-1 rounded-md flex-shrink-0"
+                            style={{ 
+                              backgroundColor: 'rgb(var(--interactive-muted))',
+                              color: 'rgb(var(--text-secondary))',
+                              fontSize: '10px'
+                            }}
+                          >
+                            {categoryLabels[metric.category]}
+                          </span>
+                        </div>
+                        <div className="flex items-center flex-wrap" style={{ gap: 'var(--space-md)' }}>
+                          <span className="text-xs" style={{ color: 'rgb(var(--text-secondary))' }}>
+                            {metric.calls} calls
+                          </span>
+                          <span className="text-xs" style={{ color: 'rgb(var(--text-secondary))' }}>
+                            {formatDuration(metric.avgDuration)} avg
+                          </span>
+                          <span className="text-xs" style={{ color: 'rgb(var(--text-secondary))' }}>
+                            {metric.successRate.toFixed(1)}% success
+                          </span>
+                          {metric.errorCount > 0 && (
+                            <span className="text-xs" style={{ color: 'rgb(var(--status-error))' }}>
+                              {metric.errorCount} errors
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <div className="text-xs text-neutral-400">
-                    P95: {formatDuration(metric.p95Duration)}
+                    <div className="text-xs flex-shrink-0" style={{ color: 'rgb(var(--text-tertiary))' }}>
+                      P95: {formatDuration(metric.p95Duration)}
+                    </div>
                   </div>
                 </div>
               ))}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Activity Heatmap */}
-        <Card className="bg-neutral-800/30 border-neutral-700">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">7-Day Activity Heatmap</CardTitle>
-          </CardHeader>
-          <CardContent className="p-3">
+        <div className="bg-card text-card-foreground border border-border rounded-xl shadow-sm">
+          <div style={{ padding: 'var(--space-lg)' }}>
+            <h4 className="text-sm font-medium" style={{ color: 'rgb(var(--text-primary))', marginBottom: 'var(--space-md)' }}>
+              7-Day Activity Heatmap
+            </h4>
             <div className="space-y-2">
               {/* Hour labels */}
-              <div className="grid grid-cols-25 gap-px">
-                <div className="w-8" />
+              <div 
+                className="grid gap-px"
+                style={{ 
+                  gridTemplateColumns: 'auto repeat(24, minmax(0, 1fr))',
+                  alignItems: 'center'
+                }}
+              >
+                <div style={{ width: '32px' }} />
                 {Array.from({ length: 24 }, (_, i) => (
-                  <div key={i} className="text-xs text-neutral-400 text-center w-3">
+                  <div 
+                    key={i} 
+                    className="text-xs text-center" 
+                    style={{ 
+                      color: 'rgb(var(--text-secondary))',
+                      fontSize: '10px',
+                      minWidth: '16px',
+                      height: '16px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                  >
                     {i % 6 === 0 ? i : ''}
                   </div>
                 ))}
@@ -438,16 +501,41 @@ export function ToolOrchestrationDashboard({ events, isLive, onRefresh }: ToolOr
               
               {/* Days and cells */}
               {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, dayIndex) => (
-                <div key={day} className="grid grid-cols-25 gap-px">
-                  <div className="w-8 text-xs text-neutral-400 pr-2">{day}</div>
+                <div 
+                  key={day} 
+                  className="grid gap-px"
+                  style={{ 
+                    gridTemplateColumns: 'auto repeat(24, minmax(0, 1fr))',
+                    alignItems: 'center'
+                  }}
+                >
+                  <div 
+                    className="text-xs" 
+                    style={{ 
+                      color: 'rgb(var(--text-secondary))',
+                      width: '32px',
+                      fontSize: '11px'
+                    }}
+                  >
+                    {day}
+                  </div>
                   {Array.from({ length: 24 }, (_, hour) => {
                     const cell = heatmapData.find(c => c.day === day && c.hour === hour);
                     const intensity = getIntensityColor(cell?.value || 0, maxHeatmapValue);
                     return (
                       <div
                         key={hour}
-                        className={`w-3 h-3 rounded-sm ${intensity} border border-neutral-700/30`}
-                        title={cell ? `${day} ${hour}:00 - ${cell.calls} calls, ${formatDuration(cell.avgDuration)} avg${cell.errors > 0 ? `, ${cell.errors} errors` : ''}` : `${day} ${hour}:00 - No activity`}
+                        className="rounded-sm border transition-all duration-200"
+                        style={{
+                          width: '16px',
+                          height: '16px',
+                          backgroundColor: intensity,
+                          borderColor: 'rgb(var(--border-secondary))'
+                        }}
+                        title={cell ? 
+                          `${day} ${hour}:00 - ${cell.calls} calls, ${formatDuration(cell.avgDuration)} avg${cell.errors > 0 ? `, ${cell.errors} errors` : ''}` : 
+                          `${day} ${hour}:00 - No activity`
+                        }
                       />
                     );
                   })}
@@ -455,24 +543,49 @@ export function ToolOrchestrationDashboard({ events, isLive, onRefresh }: ToolOr
               ))}
               
               {/* Legend */}
-              <div className="flex items-center gap-2 text-xs text-neutral-400 mt-3 pt-2 border-t border-neutral-700">
+              <div 
+                className="flex items-center text-xs pt-2" 
+                style={{ 
+                  gap: 'var(--space-sm)',
+                  borderTop: '1px solid rgb(var(--border-secondary))',
+                  marginTop: 'var(--space-md)',
+                  paddingTop: 'var(--space-md)',
+                  color: 'rgb(var(--text-secondary))'
+                }}
+              >
                 <span>Less</span>
                 <div className="flex gap-px">
                   {[0, 0.2, 0.4, 0.6, 0.8, 1].map((intensity, i) => (
-                    <div key={i} className={`w-3 h-3 rounded-sm ${getIntensityColor(intensity * maxHeatmapValue, maxHeatmapValue)}`} />
+                    <div 
+                      key={i} 
+                      className="rounded-sm" 
+                      style={{
+                        width: '12px',
+                        height: '12px',
+                        backgroundColor: getIntensityColor(intensity * maxHeatmapValue, maxHeatmapValue)
+                      }}
+                    />
                   ))}
                 </div>
                 <span>More</span>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
 
       {filteredMetrics.length === 0 && (
-        <div className="text-center py-8 text-neutral-400">
-          <BarChart3 className="h-12 w-12 mx-auto mb-4 opacity-50" />
-          <p>No tool activity data available for the selected time range.</p>
+        <div className="text-center" style={{ padding: 'var(--space-3xl) var(--space-lg)' }}>
+          <BarChart3 
+            className="h-12 w-12 mx-auto opacity-50" 
+            style={{ 
+              color: 'rgb(var(--text-muted))',
+              marginBottom: 'var(--space-lg)'
+            }} 
+          />
+          <p style={{ color: 'rgb(var(--text-muted))' }}>
+            No tool activity data available for the selected time range.
+          </p>
         </div>
       )}
     </div>

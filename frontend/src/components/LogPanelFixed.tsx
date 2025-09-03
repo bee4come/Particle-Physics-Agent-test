@@ -101,7 +101,7 @@ export function LogPanelFixed({ isOpen, onClose, logs, onClear }: LogPanelProps)
   return (
     <div className={`fixed bottom-0 left-0 right-0 bg-neutral-900 border-t border-neutral-700 transform transition-transform duration-300 ${
       isOpen ? 'translate-y-0' : 'translate-y-full'
-    }`} style={{ height: '40vh', zIndex: 50 }}>
+    }`} style={{ height: '40vh', zIndex: 45 }}>
       {/* Header */}
       <div className="flex items-center justify-between p-3 border-b border-neutral-700">
         <div className="flex items-center gap-3">
