@@ -17,12 +17,13 @@
 from google.adk.agents import Agent
 from ..models import TIKZ_VALIDATOR_MODEL
 from .tikz_validator_agent_prompt import PROMPT as TIKZ_VALIDATOR_AGENT_PROMPT
-from ..integrations.mcp.latex_mcp_client import compile_tikz_mcp
+from ..integrations.mcp.latex_stdio_mcp_client import compile_tikz_mcp
 
 
 async def tikz_compile_and_validate_tool(
     tikz_code: str, 
     engine: str = "pdflatex",
+    format: str = "all",
     timeout: int = 30
 ) -> str:
     """
@@ -36,9 +37,49 @@ async def tikz_compile_and_validate_tool(
     Returns:
         Comprehensive compilation and validation report
     """
+    import logging
+    logger = logging.getLogger(__name__)
+    
     try:
+        # Force print to ensure we see this in logs
+        print(f"[TIKZ_DEBUG] tikz_compile_and_validate_tool called with engine={engine}, format={format}")
+        print(f"[TIKZ_DEBUG] TikZ code length: {len(tikz_code)} characters")
+        logger.info(f"tikz_compile_and_validate_tool called with engine={engine}, format={format}")
+        logger.info(f"TikZ code length: {len(tikz_code)} characters")
+        
         # Compile TikZ code using MCP service
-        compilation_result = await compile_tikz_mcp(tikz_code, engine)
+        print("[TIKZ_DEBUG] Calling compile_tikz_mcp...")
+        logger.info("Calling compile_tikz_mcp...")
+        compilation_result = await compile_tikz_mcp(tikz_code, engine, format)
+        print(f"[TIKZ_DEBUG] compile_tikz_mcp returned: {compilation_result}")
+        logger.info(f"compile_tikz_mcp returned: {compilation_result}")
+        
+        if not compilation_result:
+            print("[TIKZ_DEBUG] compile_tikz_mcp returned None or empty result")
+            logger.error("compile_tikz_mcp returned None or empty result")
+            return """
+# TikZ MCP Compilation Report
+
+## Compilation Status
+- **Success**: No
+- **Status**: error
+- **Compilation Time**: 0ms
+- **Engine**: """ + engine + """
+
+## Critical Error
+- **Error**: compile_tikz_mcp returned None or empty result
+- **Debug Info**: This indicates a fundamental communication issue with the MCP service
+- **ADK Context**: Tool executed but MCP client returned no data
+
+## Troubleshooting
+- Check MCP service status: curl http://localhost:8003/health
+- Review ADK tool execution logs for exceptions
+- Verify that compile_tikz_mcp function is working correctly
+- Check ADK async execution context
+
+## Generated Files
+- No files generated due to compilation errors
+"""
         
         # Generate comprehensive validation report
         report = f"""
@@ -52,14 +93,19 @@ async def tikz_compile_and_validate_tool(
 
 ## Generated Files"""
         
-        if compilation_result['artifacts']:
+        if compilation_result['file_urls']:
+            urls = compilation_result['file_urls']
+            report += f"\n- **PDF**: [Download]({urls['pdf_url']})"
+            report += f"\n- **SVG**: [Download]({urls['svg_url']})"
+            report += f"\n- **PNG**: [Download]({urls['png_url']})" 
+            report += f"\n- **File Info**: [Details]({urls['info_url']})"
+            report += f"\n- **File ID**: `{compilation_result.get('file_id', 'unknown')}`"
+        elif compilation_result['artifacts']:
             artifacts = compilation_result['artifacts']
             if artifacts.get('pdf_path'):
                 report += f"\n- **PDF**: {artifacts['pdf_path']}"
             if artifacts.get('svg_path'):
                 report += f"\n- **SVG**: {artifacts['svg_path']}"
-            if artifacts.get('png_path'):
-                report += f"\n- **PNG**: {artifacts['png_path']}"
         else:
             report += "\n- No files generated due to compilation errors"
             
@@ -115,18 +161,25 @@ async def tikz_compile_and_validate_tool(
         
     except Exception as e:
         # Error in MCP communication
+        logger.error(f"Exception in tikz_compile_and_validate_tool: {str(e)}")
+        logger.error(f"Exception type: {type(e)}")
+        import traceback
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        
         error_report = f"""
 # TikZ MCP Communication Error
 
 ## Critical Error
 - **Status**: MCP service communication failed
 - **Error**: {str(e)}
+- **Error Type**: {type(e).__name__}
 - **Service**: LaTeX MCP at localhost:8003
 
 ## Troubleshooting
 - Check if MCP service is running: curl http://localhost:8003/health
 - Verify network connectivity and service availability
 - Review MCP service logs for detailed error information
+- Exception details logged for debugging
 
 **Please check MCP service status and try again.**
 """

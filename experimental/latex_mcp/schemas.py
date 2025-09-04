@@ -8,8 +8,8 @@ class CompileRequest(BaseModel):
         default="lualatex", description="LaTeX engine"
     )
     timeoutSec: int = Field(default=15, ge=1, le=120, description="Timeout seconds")
-    format: Literal["pdf", "svg", "both"] = Field(
-        default="pdf", description="Output format: pdf, svg, or both"
+    format: Literal["pdf", "svg", "png", "both", "all"] = Field(
+        default="pdf", description="Output format: pdf, svg, png, both, or all"
     )
 
 
@@ -24,6 +24,7 @@ class CompilerMessage(BaseModel):
 class CompileArtifacts(BaseModel):
     pdfPath: Optional[str] = None
     svgPath: Optional[str] = None
+    pngPath: Optional[str] = None
 
 
 class CompileMetrics(BaseModel):

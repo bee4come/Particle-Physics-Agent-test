@@ -92,3 +92,30 @@ gemini-fullstack-langgraph-quickstart/
 frontend/node_modules/
 frontend/dist/
 frontend/.env*
+frontend/public/generated/
+
+# Generated test files
+test_*.pdf
+test_*.svg
+test_*.png
+test_*.html
+test_*.json
+
+# LaTeX MCP generated files
+*.tex
+*.aux
+*.fdb_latexmk
+*.fls
+*.synctex.gz
+
+# Logs and temporary files  
+logs-*.txt
+*.log
+logs/
+nohup.out
+
+# Process ID files
+*.pid
+
+# HTML test files
+test_*.html

@@ -16,6 +16,7 @@ class LaTeXCompileResult:
     warnings: List[Dict[str, Any]]
     metrics: Dict[str, Any]
     artifacts: Optional[Dict[str, Any]] = None
+    file_id: Optional[str] = None
 
 class LaTeXMCPClient:
     """LaTeX MCP 客户端"""
@@ -28,6 +29,7 @@ class LaTeXMCPClient:
         self, 
         tikz_code: str, 
         engine: str = "pdflatex",
+        format: str = "both",
         timeout: int = 30
     ) -> LaTeXCompileResult:
         """
@@ -49,7 +51,8 @@ class LaTeXMCPClient:
                 "name": "latex_compile",
                 "arguments": {
                     "tikz": tikz_code,
-                    "engine": engine
+                    "engine": engine,
+                    "format": format
                 }
             }
         }
@@ -89,7 +92,8 @@ class LaTeXMCPClient:
                         errors=result_data.get("errors", []),
                         warnings=result_data.get("warnings", []),
                         metrics=result_data.get("metrics", {"latency_ms": 0}),
-                        artifacts=result_data.get("artifacts")
+                        artifacts=result_data.get("artifacts"),
+                        file_id=result_data.get("file_id")
                     )
                     
         except aiohttp.ClientError as e:
@@ -125,22 +129,75 @@ class LaTeXMCPClient:
 # 全局客户端实例
 latex_mcp_client = LaTeXMCPClient()
 
-async def compile_tikz_mcp(tikz_code: str, engine: str = "pdflatex") -> Dict[str, Any]:
+async def compile_tikz_mcp(tikz_code: str, engine: str = "pdflatex", format: str = "both") -> Dict[str, Any]:
     """
     MCP工具函数：编译TikZ代码
     
     这个函数可以被ADK智能体作为工具调用
     """
-    result = await latex_mcp_client.compile_tikz(tikz_code, engine)
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    logger.info(f"compile_tikz_mcp called with engine={engine}, format={format}")
+    logger.info(f"TikZ code length: {len(tikz_code)} characters")
+    
+    try:
+        result = await latex_mcp_client.compile_tikz(tikz_code, engine, format)
+        logger.info(f"latex_mcp_client.compile_tikz returned: {result}")
+        
+        if not result:
+            logger.error("latex_mcp_client.compile_tikz returned None")
+            return {
+                "success": False,
+                "status": "error",
+                "errors": [{"message": "latex_mcp_client.compile_tikz returned None"}],
+                "warnings": [],
+                "compilation_time_ms": 0,
+                "artifacts": None,
+                "file_id": None,
+                "file_urls": {},
+                "latex_log": "",
+                "suggestions": ["Check MCP service connectivity"]
+            }
+        
+    except Exception as e:
+        logger.error(f"Exception in compile_tikz_mcp: {str(e)}")
+        import traceback
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        return {
+            "success": False,
+            "status": "error",
+            "errors": [{"message": f"Exception in compile_tikz_mcp: {str(e)}"}],
+            "warnings": [],
+            "compilation_time_ms": 0,
+            "artifacts": None,
+            "file_id": None,
+            "file_urls": {},
+            "latex_log": "",
+            "suggestions": [f"Fix exception: {type(e).__name__}"]
+        }
+    
+    # 生成文件URL
+    file_urls = {}
+    if result.file_id and result.status == "ok":
+        base_url = "http://localhost:8003"
+        file_urls = {
+            "pdf_url": f"{base_url}/files/{result.file_id}/pdf",
+            "svg_url": f"{base_url}/files/{result.file_id}/svg",
+            "png_url": f"{base_url}/files/{result.file_id}/png",
+            "info_url": f"{base_url}/files/{result.file_id}/info"
+        }
     
     # 转换为智能体友好的格式
     return {
-        "success": result.status == "success",
+        "success": result.status == "ok",
         "status": result.status,
         "errors": result.errors,
         "warnings": result.warnings,
         "compilation_time_ms": result.metrics.get("latency_ms", 0),
         "artifacts": result.artifacts,
+        "file_id": result.file_id,
+        "file_urls": file_urls,
         "latex_log": "",  # MCP版本暂不提供详细日志
         "suggestions": _generate_suggestions_from_errors(result.errors, result.warnings)
     }

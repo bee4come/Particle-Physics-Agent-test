@@ -109,19 +109,30 @@ def compile_tikz(req: CompileRequest) -> CompileResult:
         status = "ok" if proc.returncode == 0 and pdf_path.exists() else "error"
 
         svg_path: Optional[Path] = None
+        png_path: Optional[Path] = None
+        
         # If SVG requested and PDF is available, attempt conversion (best-effort)
-        if status == "ok" and req.format in ("svg", "both") and pdf_path.exists():
+        if status == "ok" and req.format in ("svg", "both", "all") and pdf_path.exists():
             svg_path, conv_err, conv_warn = _convert_pdf_to_svg(tmpdir, pdf_path, req.timeoutSec)
+            if conv_err:
+                errors.extend(conv_err)
+            if conv_warn:
+                warnings.extend(conv_warn)
+        
+        # If PNG requested and PDF is available, attempt conversion (best-effort)
+        if status == "ok" and req.format in ("png", "both", "all") and pdf_path.exists():
+            png_path, conv_err, conv_warn = _convert_pdf_to_png(tmpdir, pdf_path, req.timeoutSec)
             if conv_err:
                 errors.extend(conv_err)
             if conv_warn:
                 warnings.extend(conv_warn)
 
         artifacts = None
-        if pdf_path.exists() or (svg_path and svg_path.exists()):
+        if pdf_path.exists() or (svg_path and svg_path.exists()) or (png_path and png_path.exists()):
             artifacts = CompileArtifacts(
                 pdfPath=str(pdf_path) if pdf_path.exists() else None,
                 svgPath=str(svg_path) if (svg_path and svg_path.exists()) else None,
+                pngPath=str(png_path) if (png_path and png_path.exists()) else None,
             )
         metrics = CompileMetrics(
             latency_ms=int((time.time() - start) * 1000), returncode=proc.returncode
@@ -186,4 +197,46 @@ def _convert_pdf_to_svg(tmpdir: Path, pdf_path: Path, timeout: int) -> Tuple[Opt
         warnings.append(CompilerMessage(message=f"dvisvgm failed to convert PDF"))
 
     errors.append(CompilerMessage(message="No SVG converter available (install pdf2svg or inkscape)", suggest="sudo apt install pdf2svg inkscape"))
+    return None, errors, warnings
+
+
+def _convert_pdf_to_png(tmpdir: Path, pdf_path: Path, timeout: int) -> Tuple[Optional[Path], List[CompilerMessage], List[CompilerMessage]]:
+    """Convert a PDF to PNG using available converters (pdftoppm > convert > gs)."""
+    errors: List[CompilerMessage] = []
+    warnings: List[CompilerMessage] = []
+    png_out = tmpdir / "doc.png"
+
+    def run_cmd(cmd: List[str]) -> subprocess.CompletedProcess:
+        return subprocess.run(
+            cmd, cwd=str(tmpdir), stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=timeout, check=False, text=True
+        )
+
+    # Try pdftoppm (from poppler-utils)
+    pdftoppm = shutil.which("pdftoppm")
+    if pdftoppm:
+        proc = run_cmd([pdftoppm, "-png", "-singlefile", "-r", "300", str(pdf_path), "doc"])
+        if proc.returncode == 0 and png_out.exists():
+            return png_out, errors, warnings
+        warnings.append(CompilerMessage(message=f"pdftoppm failed rc={proc.returncode}"))
+
+    # Try ImageMagick convert
+    convert = shutil.which("convert")
+    if convert:
+        proc = run_cmd([convert, "-density", "300", str(pdf_path), str(png_out)])
+        if proc.returncode == 0 and png_out.exists():
+            return png_out, errors, warnings
+        warnings.append(CompilerMessage(message=f"ImageMagick convert failed"))
+
+    # Try Ghostscript
+    gs = shutil.which("gs")
+    if gs:
+        proc = run_cmd([
+            gs, "-dNOPAUSE", "-dBATCH", "-sDEVICE=png16m", "-r300",
+            f"-sOutputFile={png_out}", str(pdf_path)
+        ])
+        if proc.returncode == 0 and png_out.exists():
+            return png_out, errors, warnings
+        warnings.append(CompilerMessage(message=f"Ghostscript failed to convert PDF"))
+
+    errors.append(CompilerMessage(message="No PNG converter available (install poppler-utils, imagemagick, or ghostscript)", suggest="sudo apt install poppler-utils imagemagick ghostscript"))
     return None, errors, warnings

@@ -62,7 +62,80 @@ TikZ Code Generation → AI Syntax Validation → Final Response Synthesis
 - **Unit Conversion**: `convert_units_mcp` - Intelligent physics unit conversion
 - **Property Check**: `check_particle_properties_mcp` - Comprehensive property validation
 
-## 🚀 Quick Start
+## 🚀 One-Click Launch (Recommended)
+
+For colleagues and testers to get started quickly, we provide complete one-click launch scripts:
+
+### 🎯 Super Simple Launch
+
+```bash
+# 1. Configure environment variables (first time only)
+cp .env.example .env
+# Edit .env file and set your GOOGLE_API_KEY
+
+# 2. One-click launch all services
+./start.sh
+
+# 3. Visit http://localhost:5173 to start using!
+```
+
+### 🔧 Script Management
+
+We provide three management scripts with complete logging functionality:
+
+```bash
+# Start services (auto log backup, dependency check, health check)
+./start.sh
+
+# Stop services (graceful shutdown, port cleanup)
+./stop.sh  
+
+# Check status (process status, resource usage, log statistics)
+./status.sh
+
+# View detailed status (including recent logs)
+./status.sh --verbose
+```
+
+### 📊 Log Management
+
+Launch script automatically manages logs:
+- 📁 **Log Directory**: `logs/backend.log`, `logs/frontend.log`
+- 🗂 **Auto Backup**: Backup to `logs/archive/` on startup
+- 🧹 **Auto Cleanup**: Automatically delete logs older than 7 days
+- ⏰ **Detailed Recording**: Startup time, PID, commands, errors, etc.
+
+### 🔍 Real-time Monitoring
+
+```bash
+# View backend logs in real-time
+tail -f logs/backend.log
+
+# View frontend logs in real-time
+tail -f logs/frontend.log
+
+# Check error information
+grep ERROR logs/backend.log
+```
+
+### 🆘 Troubleshooting
+
+```bash
+# Check service status
+./status.sh
+
+# If ports are occupied
+lsof -i :8000  # Check backend port
+lsof -i :5173  # Check frontend port
+
+# Force cleanup (if needed)
+pkill -f "adk web"
+pkill -f "npm run dev"
+```
+
+---
+
+## 🚀 Quick Start (Manual Setup)
 
 ### Requirements
 

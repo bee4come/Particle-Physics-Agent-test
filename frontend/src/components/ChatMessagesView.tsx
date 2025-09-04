@@ -12,6 +12,102 @@ import {
   ActivityTimeline,
   ProcessedEvent,
 } from "@/components/ActivityTimeline"; // Assuming ActivityTimeline is in the same dir or adjust path
+import { DiagramPreview } from "@/components/DiagramPreview";
+
+// Utility function to extract file URLs and IDs from message content
+const extractFileInfo = (content: string) => {
+  const patterns = {
+    fileId: /(?:file_id|\*\*File ID\*\*):\s*`?([a-zA-Z0-9_]+)`?/gi,
+    pdfMarkdownLink: /\*\*PDF\*\*:\s*\[Download\]\(([^)]+)\)/gi,
+    svgMarkdownLink: /\*\*SVG\*\*:\s*\[Download\]\(([^)]+)\)/gi,
+    pngMarkdownLink: /\*\*PNG\*\*:\s*\[Download\]\(([^)]+)\)/gi,
+    infoMarkdownLink: /\*\*File Info\*\*:\s*\[Details\]\(([^)]+)\)/gi,
+    // Fallback patterns for direct URLs
+    pdfUrl: /(?:PDF|pdf)\s*(?:URL|url|link):\s*(http[^\s]+)/gi,
+    svgUrl: /(?:SVG|svg)\s*(?:URL|url|link):\s*(http[^\s]+)/gi,
+    pngUrl: /(?:PNG|png)\s*(?:URL|url|link):\s*(http[^\s]+)/gi,
+    downloadUrl: /(?:Download|download)\s*(?:URL|url|link):\s*(http[^\s]+)/gi,
+  };
+
+  const fileIds: string[] = [];
+  const fileUrls: { [key: string]: string } = {};
+
+  let match;
+  
+  // Extract file IDs
+  patterns.fileId.lastIndex = 0; // Reset regex state
+  while ((match = patterns.fileId.exec(content)) !== null) {
+    fileIds.push(match[1]);
+  }
+
+  // Extract PDF URLs from markdown links
+  patterns.pdfMarkdownLink.lastIndex = 0;
+  while ((match = patterns.pdfMarkdownLink.exec(content)) !== null) {
+    fileUrls.pdf_url = match[1];
+  }
+
+  // Extract SVG URLs from markdown links
+  patterns.svgMarkdownLink.lastIndex = 0;
+  while ((match = patterns.svgMarkdownLink.exec(content)) !== null) {
+    fileUrls.svg_url = match[1];
+  }
+
+  // Extract PNG URLs from markdown links
+  patterns.pngMarkdownLink.lastIndex = 0;
+  while ((match = patterns.pngMarkdownLink.exec(content)) !== null) {
+    fileUrls.png_url = match[1];
+  }
+
+  // Extract info URLs from markdown links
+  patterns.infoMarkdownLink.lastIndex = 0;
+  while ((match = patterns.infoMarkdownLink.exec(content)) !== null) {
+    fileUrls.info_url = match[1];
+  }
+
+  // Fallback: Extract direct PDF URLs
+  if (!fileUrls.pdf_url) {
+    patterns.pdfUrl.lastIndex = 0;
+    while ((match = patterns.pdfUrl.exec(content)) !== null) {
+      fileUrls.pdf_url = match[1];
+    }
+  }
+
+  // Fallback: Extract direct SVG URLs
+  if (!fileUrls.svg_url) {
+    patterns.svgUrl.lastIndex = 0;
+    while ((match = patterns.svgUrl.exec(content)) !== null) {
+      fileUrls.svg_url = match[1];
+    }
+  }
+
+  // Fallback: Extract direct PNG URLs
+  if (!fileUrls.png_url) {
+    patterns.pngUrl.lastIndex = 0;
+    while ((match = patterns.pngUrl.exec(content)) !== null) {
+      fileUrls.png_url = match[1];
+    }
+  }
+
+  // Fallback: Extract download URLs
+  patterns.downloadUrl.lastIndex = 0;
+  while ((match = patterns.downloadUrl.exec(content)) !== null) {
+    if (!fileUrls.pdf_url && match[1].includes('pdf')) {
+      fileUrls.pdf_url = match[1];
+    }
+    if (!fileUrls.svg_url && match[1].includes('svg')) {
+      fileUrls.svg_url = match[1];
+    }
+    if (!fileUrls.png_url && match[1].includes('png')) {
+      fileUrls.png_url = match[1];
+    }
+  }
+
+  return {
+    fileIds,
+    fileUrls,
+    hasDiagram: fileIds.length > 0 || Object.keys(fileUrls).length > 0
+  };
+};
 
 // Markdown component props type from former ReportView
 type MdComponentProps = {
@@ -186,6 +282,10 @@ const AiMessageBubble: React.FC<AiMessageBubbleProps> = ({
     isLastMessage && isOverallLoading ? liveActivity : historicalActivity;
   const isLiveActivityForThisBubble = isLastMessage && isOverallLoading;
 
+  // Extract file info from message content
+  const messageContent = typeof message.content === "string" ? message.content : JSON.stringify(message.content);
+  const { fileIds, fileUrls, hasDiagram } = extractFileInfo(messageContent);
+
   return (
     <div className={`relative break-words flex flex-col`}>
       {activityForThisBubble && activityForThisBubble.length > 0 && (
@@ -197,10 +297,21 @@ const AiMessageBubble: React.FC<AiMessageBubbleProps> = ({
         </div>
       )}
       <ReactMarkdown components={mdComponents}>
-        {typeof message.content === "string"
-          ? message.content
-          : JSON.stringify(message.content)}
+        {messageContent}
       </ReactMarkdown>
+      
+      {/* Display diagram preview if file info is detected */}
+      {hasDiagram && (
+        <div className="mt-4 border border-neutral-600 rounded-lg overflow-hidden">
+          <DiagramPreview
+            fileId={fileIds[0] || ""}
+            fileUrls={fileUrls}
+            compilationStatus="success"
+            className="w-full"
+          />
+        </div>
+      )}
+      
       <Button
         variant="default"
         className={`cursor-pointer bg-neutral-700 border-neutral-600 text-neutral-300 self-end ${
@@ -208,9 +319,7 @@ const AiMessageBubble: React.FC<AiMessageBubbleProps> = ({
         }`}
         onClick={() =>
           handleCopy(
-            typeof message.content === "string"
-              ? message.content
-              : JSON.stringify(message.content),
+            messageContent,
             message.id!
           )
         }
