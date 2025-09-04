@@ -12,176 +12,174 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""TikZ Validator Agent for FeynmanCraft ADK."""
+"""TikZ Validator Agent for FeynmanCraft ADK - MCP Version."""
 
 from google.adk.agents import Agent
-
 from ..models import TIKZ_VALIDATOR_MODEL
 from .tikz_validator_agent_prompt import PROMPT as TIKZ_VALIDATOR_AGENT_PROMPT
+from ..integrations.mcp.latex_mcp_client import compile_tikz_mcp
 
 
-def tikz_validator_tool(tikz_code: str, additional_packages: str = "") -> str:
+async def tikz_compile_and_validate_tool(
+    tikz_code: str, 
+    engine: str = "pdflatex",
+    timeout: int = 30
+) -> str:
     """
-    Validate TikZ code through prompt-based analysis and syntax checking.
+    Compile and validate TikZ code through MCP LaTeX service.
     
     Args:
-        tikz_code: TikZ code to validate
-        additional_packages: Additional LaTeX packages, comma-separated
+        tikz_code: TikZ code to compile and validate
+        engine: LaTeX engine (pdflatex, lualatex)
+        timeout: Compilation timeout in seconds
         
     Returns:
-        Detailed validation report with syntax and structure analysis
+        Comprehensive compilation and validation report
     """
-    # Parse additional packages
-    packages = []
-    if additional_packages.strip():
-        packages = [pkg.strip() for pkg in additional_packages.split(",") if pkg.strip()]
-    
-    # Standard TikZ-Feynman packages
-    standard_packages = [
-        "tikz", "tikz-feynman", "amsmath", "physics", "siunitx", "xcolor", "graphicx"
-    ]
-    
-    # Merge with user-specified packages, avoiding duplicates
-    all_packages = list(set(packages + standard_packages))
-    
-    # Perform prompt-based validation
-    validation_result = _validate_tikz_syntax(tikz_code, all_packages)
-    
-    # Generate detailed validation report
-    report = f"""
-# TikZ Code Validation Report (Prompt-Based Analysis)
+    try:
+        # Compile TikZ code using MCP service
+        compilation_result = await compile_tikz_mcp(tikz_code, engine)
+        
+        # Generate comprehensive validation report
+        report = f"""
+# TikZ MCP Compilation Report
 
-## Validation Method
-- **Analysis Type**: AI-powered syntax and structure validation
-- **TikZ-Feynman Support**: Standard syntax patterns
-- **Package Checking**: {', '.join(all_packages)}
+## Compilation Status
+- **Success**: {'Yes' if compilation_result['success'] else 'No'}
+- **Status**: {compilation_result['status']}
+- **Compilation Time**: {compilation_result['compilation_time_ms']}ms
+- **Engine**: {engine}
 
-## Validation Results
-- **Syntax Valid**: {'Yes' if validation_result['syntax_valid'] else 'No'}
-- **Structure Valid**: {'Yes' if validation_result['structure_valid'] else 'No'}
-- **Overall Quality**: {validation_result['quality_score']}/100
+## Generated Files"""
+        
+        if compilation_result['artifacts']:
+            artifacts = compilation_result['artifacts']
+            if artifacts.get('pdf_path'):
+                report += f"\n- **PDF**: {artifacts['pdf_path']}"
+            if artifacts.get('svg_path'):
+                report += f"\n- **SVG**: {artifacts['svg_path']}"
+            if artifacts.get('png_path'):
+                report += f"\n- **PNG**: {artifacts['png_path']}"
+        else:
+            report += "\n- No files generated due to compilation errors"
+            
+        # Add error analysis
+        if compilation_result['errors']:
+            report += "\n\n## Compilation Errors\n"
+            for i, error in enumerate(compilation_result['errors'], 1):
+                report += f"\n### Error {i}\n"
+                report += f"- **Message**: {error.get('message', 'Unknown error')}\n"
+                if error.get('line'):
+                    report += f"- **Line**: {error['line']}\n"
+                if error.get('suggest'):
+                    report += f"- **Suggestion**: {error['suggest']}\n"
+        
+        # Add warnings
+        if compilation_result['warnings']:
+            report += "\n\n## Compilation Warnings\n"
+            for i, warning in enumerate(compilation_result['warnings'], 1):
+                report += f"\n### Warning {i}\n"
+                report += f"- **Message**: {warning.get('message', 'Unknown warning')}\n"
+                if warning.get('line'):
+                    report += f"- **Line**: {warning['line']}\n"
+                if warning.get('suggest'):
+                    report += f"- **Suggestion**: {warning['suggest']}\n"
+        
+        # Add general suggestions
+        if compilation_result['suggestions']:
+            report += "\n\n## Improvement Suggestions\n"
+            for suggestion in compilation_result['suggestions']:
+                report += f"- {suggestion}\n"
+        
+        # Add engine information
+        report += f"\n\n## Engine Configuration\n"
+        report += f"- **Engine Used**: {engine}\n"
+        report += f"- **Service**: LaTeX MCP (isolated)\n"
+        
+        # Add best practices if compilation was successful
+        if compilation_result['success']:
+            report += "\n\n## TikZ-Feynman Best Practices\n"
+            report += "- Use '\\feynmandiagram[...]' for simple diagrams\n"
+            report += "- Use '\\begin{feynman}\\end{feynman}' for complex layouts\n"
+            report += "- Ensure proper particle naming: \\(e^+\\), \\(\\gamma\\), \\(\\nu_e\\)\n"
+            report += "- Use positioning library for relative placement\n"
+            report += "- Include proper momentum labels and arrows\n"
+            report += "\n**Note**: Files generated by MCP service are available for download."
+        else:
+            report += "\n\n## Next Steps\n"
+            report += "- Check TikZ syntax and LaTeX package requirements\n"
+            report += "- Consider switching between pdflatex and lualatex engines\n"
+            report += "- Review error messages above for specific fixes\n"
+        
+        return report
+        
+    except Exception as e:
+        # Error in MCP communication
+        error_report = f"""
+# TikZ MCP Communication Error
 
-## Analysis Details
+## Critical Error
+- **Status**: MCP service communication failed
+- **Error**: {str(e)}
+- **Service**: LaTeX MCP at localhost:8003
+
+## Troubleshooting
+- Check if MCP service is running: curl http://localhost:8003/health
+- Verify network connectivity and service availability
+- Review MCP service logs for detailed error information
+
+**Please check MCP service status and try again.**
 """
-    
-    # Add syntax analysis
-    if validation_result['syntax_errors']:
-        report += "\n### Syntax Errors Found\n"
-        for error in validation_result['syntax_errors']:
-            report += f"- {error}\n"
-    else:
-        report += "\n### Syntax Analysis\n- No syntax errors detected\n"
-    
-    # Add structure analysis
-    if validation_result['structure_issues']:
-        report += "\n### Structure Issues\n"
-        for issue in validation_result['structure_issues']:
-            report += f"- {issue}\n"
-    else:
-        report += "\n### Structure Analysis\n- Proper TikZ-Feynman structure detected\n"
-    
-    # Add warnings
-    if validation_result['warnings']:
-        report += "\n### Warnings\n"
-        for warning in validation_result['warnings']:
-            report += f"- {warning}\n"
-    else:
-        report += "\n### Warnings\n- No warnings\n"
-    
-    # Add suggestions
-    if validation_result['suggestions']:
-        report += "\n### Improvement Suggestions\n"
-        for suggestion in validation_result['suggestions']:
-            report += f"- {suggestion}\n"
-    
-    # Add best practices recommendations
-    report += "\n### TikZ-Feynman Best Practices\n"
-    report += "- Use '\\feynmandiagram[...]' for simple diagrams\n"
-    report += "- Use '\\begin[feynman]\\end[feynman]' for complex layouts\n"
-    report += "- Ensure proper particle naming: \\(e^+\\), \\(\\gamma\\), \\(\\nu_e\\)\n"
-    report += "- Use positioning library for relative placement\n"
-    report += "- Include proper momentum labels and arrows\n"
-    
-    return report
+        return error_report
 
 
-def _validate_tikz_syntax(tikz_code: str, packages: list) -> dict:  # packages parameter kept for future use
-    """
-    Perform detailed prompt-based TikZ syntax validation.
+# Simple fallback validation function for basic syntax checking
+def _validate_tikz_syntax(tikz_code: str, packages: list) -> dict:
+    """Basic TikZ syntax validation."""
+    syntax_valid = True
+    structure_valid = True
+    syntax_errors = []
+    structure_issues = []
     
-    Args:
-        tikz_code: TikZ code to validate
-        packages: List of packages to check
-        
-    Returns:
-        Dictionary with validation results
-    """
-    result = {
-        'syntax_valid': True,
-        'structure_valid': True,
-        'syntax_errors': [],
-        'structure_issues': [],
-        'warnings': [],
-        'suggestions': [],
-        'quality_score': 100
+    # Basic syntax checks
+    if '\\begin{tikzpicture}' not in tikz_code and '\\feynmandiagram' not in tikz_code:
+        syntax_errors.append("Missing TikZ environment (\\begin{tikzpicture} or \\feynmandiagram)")
+        syntax_valid = False
+    
+    # Check for balanced braces
+    open_braces = tikz_code.count('{')
+    close_braces = tikz_code.count('}')
+    if open_braces != close_braces:
+        syntax_errors.append(f"Unbalanced braces: {open_braces} open, {close_braces} close")
+        syntax_valid = False
+    
+    # Structure checks
+    if '\\end{tikzpicture}' in tikz_code and '\\begin{tikzpicture}' not in tikz_code:
+        structure_issues.append("Found \\end{tikzpicture} without matching \\begin{tikzpicture}")
+        structure_valid = False
+    
+    quality_score = 100
+    if syntax_errors:
+        quality_score -= len(syntax_errors) * 20
+    if structure_issues:
+        quality_score -= len(structure_issues) * 10
+    
+    return {
+        'syntax_valid': syntax_valid,
+        'structure_valid': structure_valid,
+        'syntax_errors': syntax_errors,
+        'structure_issues': structure_issues,
+        'quality_score': max(0, quality_score)
     }
-    
-    # Check basic TikZ structure
-    if not ('\\begin{tikzpicture}' in tikz_code and '\\end{tikzpicture}' in tikz_code):
-        if not ('\\feynmandiagram' in tikz_code):
-            result['structure_issues'].append("Missing tikzpicture environment or feynmandiagram command")
-            result['structure_valid'] = False
-    
-    # Check for TikZ-Feynman specific patterns
-    feynman_patterns = ['\\feynmandiagram', '\\begin{feynman}', '\\vertex', '\\diagram']
-    if not any(pattern in tikz_code for pattern in feynman_patterns):
-        result['warnings'].append("No TikZ-Feynman specific commands detected")
-    
-    # Check for common syntax issues
-    brace_count = tikz_code.count('{') - tikz_code.count('}')
-    if brace_count != 0:
-        result['syntax_errors'].append(f"Mismatched braces: {abs(brace_count)} {'opening' if brace_count > 0 else 'closing'} brace(s) unmatched")
-        result['syntax_valid'] = False
-    
-    bracket_count = tikz_code.count('[') - tikz_code.count(']')
-    if bracket_count != 0:
-        result['syntax_errors'].append(f"Mismatched brackets: {abs(bracket_count)} {'opening' if bracket_count > 0 else 'closing'} bracket(s) unmatched")
-        result['syntax_valid'] = False
-    
-    # Check for semicolon endings in TikZ commands
-    lines = tikz_code.split('\n')
-    for i, line in enumerate(lines, 1):
-        line = line.strip()
-        if line and '\\' in line and not line.endswith(';') and not line.endswith('}') and not line.endswith('{'):
-            if any(cmd in line for cmd in ['\\draw', '\\node', '\\vertex', '\\diagram']):
-                result['warnings'].append(f"Line {i}: TikZ command may be missing semicolon")
-    
-    # Check for proper particle notation
-    if 'e+' in tikz_code and '\\(e^+\\)' not in tikz_code:
-        result['suggestions'].append("Use proper math notation for particles: \\(e^+\\) instead of e+")
-    
-    # Check for positioning library usage
-    if 'above' in tikz_code or 'below' in tikz_code or 'left' in tikz_code or 'right' in tikz_code:
-        if 'positioning' not in tikz_code:
-            result['suggestions'].append("Consider using \\usetikzlibrary{positioning} for better positioning")
-    
-    # Calculate quality score
-    error_penalty = len(result['syntax_errors']) * 20
-    structure_penalty = len(result['structure_issues']) * 15
-    warning_penalty = len(result['warnings']) * 5
-    
-    result['quality_score'] = max(0, 100 - error_penalty - structure_penalty - warning_penalty)
-    
-    return result
 
 
 TikZValidatorAgent = Agent(
-    model=TIKZ_VALIDATOR_MODEL,  # Use gemini-2.5-flash for simple syntax validation
+    model=TIKZ_VALIDATOR_MODEL,  # Use gemini-2.0-flash for MCP LaTeX compilation 
     name="tikz_validator_agent",
-    description="Validates TikZ code through prompt-based analysis and syntax checking without requiring TeX compilation.",
+    description="Compiles and validates TikZ code through MCP LaTeX service with PDF/SVG/PNG generation.",
     instruction=TIKZ_VALIDATOR_AGENT_PROMPT,
     tools=[
-        tikz_validator_tool,
+        tikz_compile_and_validate_tool,
     ],
-    output_key="tikz_validation_report",  # State management: outputs to state.tikz_validation_report
-) 
+    output_key="tikz_compilation_report",  # State management: outputs to state.tikz_compilation_report
+)

@@ -1,7 +1,10 @@
 # Project-specific
 /legacy
 .env
-
+/.claude
+/.playwright-mcp
+*.png
+/playwright-mcp
 # Python
 __pycache__/
 *.py[cod]

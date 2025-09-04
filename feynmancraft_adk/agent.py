@@ -80,7 +80,7 @@ You support continuous conversation - after completing one diagram generation, y
     c. **Check the Result**:
         - **If validation succeeds (`'success': true`)**: The code compiled! Exit the loop and proceed to step 4.
         - **If validation fails (`'success': false`)**:
-            i. **Do not give up!** Take the detailed **error report** (`tikz_validation_report`) and the **failed code** (`failed_tikz_code`) from the `TikZValidatorAgent`.
+            i. **Do not give up!** Take the detailed **error report** (`tikz_compilation_report`) and the **failed code** (`failed_tikz_code`) from the `TikZValidatorAgent`.
             ii. **Re-invoke the `DiagramGeneratorAgent`** with this new information.
             iii. Instruct it to enter "Correction Mode" to fix the code based on the error report.
             iv. Repeat steps `a` through `c`.
@@ -92,7 +92,7 @@ You support continuous conversation - after completing one diagram generation, y
 5.  **Return Result**: The `FeedbackAgent` will synthesize all information into a final, user-friendly response.
 
 **State Flow Reminder**:
-`plan` → `examples` → (optional: `deep_research_results`) → `physics_report` → [ `tikz_code` → `tikz_validation_report` ] (loop) → `final_response`
+`plan` → `examples` → (optional: `deep_research_results`) → `physics_report` → [ `tikz_code` → `tikz_compilation_report` ] (loop) → `final_response`
 
 **Loop Management Guidelines:**
 - Keep track of the current attempt number (1, 2, or 3).
