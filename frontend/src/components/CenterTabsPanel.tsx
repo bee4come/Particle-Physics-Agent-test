@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -23,9 +23,11 @@ export interface CenterTabsPanelProps {
   activeTab: 'preview' | 'tikz' | 'latex' | 'diff';
   onTabChange: (tab: 'preview' | 'tikz' | 'latex' | 'diff') => void;
   
-  // Preview data
+  // Preview data - support all formats
   pdfUrl?: string;
   svgUrl?: string;
+  pngUrl?: string;
+  previewFormat?: 'pdf' | 'svg' | 'png';  // Which format to display
   previewStatus: 'loading' | 'ready' | 'error' | 'empty';
   
   // Code data
@@ -50,7 +52,9 @@ export function CenterTabsPanel({
   activeTab,
   onTabChange,
   pdfUrl,
-
+  svgUrl,
+  pngUrl,
+  previewFormat: initialPreviewFormat,
   previewStatus,
   tikzCode = '',
   latexCode = '',
@@ -60,6 +64,21 @@ export function CenterTabsPanel({
   const [zoomLevel, setZoomLevel] = useState(100);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages] = useState(1); // Will be dynamic with PDF.js
+  const [currentFormat, setCurrentFormat] = useState<'pdf' | 'svg' | 'png'>(initialPreviewFormat || 'pdf');
+
+  // Determine available formats based on provided URLs
+  const availableFormats = [
+    pdfUrl && 'pdf',
+    svgUrl && 'svg', 
+    pngUrl && 'png'
+  ].filter(Boolean) as ('pdf' | 'svg' | 'png')[];
+
+  // Use the first available format if current format is not available
+  React.useEffect(() => {
+    if (!availableFormats.includes(currentFormat) && availableFormats.length > 0) {
+      setCurrentFormat(availableFormats[0]);
+    }
+  }, [pdfUrl, svgUrl, pngUrl]);
 
   const handleZoomIn = () => setZoomLevel(prev => Math.min(prev + 25, 300));
   const handleZoomOut = () => setZoomLevel(prev => Math.max(prev - 25, 25));
@@ -111,6 +130,23 @@ export function CenterTabsPanel({
               {previewStatus === 'ready' && (
                 <div className="flex-shrink-0 flex items-center justify-between px-4 py-2 bg-neutral-800 border-b border-neutral-700">
                   <div className="flex items-center gap-2">
+                    {/* Format Selector */}
+                    {availableFormats.length > 1 && (
+                      <div className="flex items-center gap-1 mr-2 p-1 bg-neutral-700 rounded">
+                        {availableFormats.map(format => (
+                          <Button
+                            key={format}
+                            variant={currentFormat === format ? "secondary" : "ghost"}
+                            size="sm"
+                            onClick={() => setCurrentFormat(format)}
+                            className="h-6 px-2 text-xs"
+                          >
+                            {format.toUpperCase()}
+                          </Button>
+                        ))}
+                      </div>
+                    )}
+                    
                     <Button
                       variant="ghost"
                       size="sm"
@@ -211,18 +247,64 @@ export function CenterTabsPanel({
                   </div>
                 )}
 
-                {previewStatus === 'ready' && pdfUrl && (
+                {previewStatus === 'ready' && (
                   <div className="p-4 flex justify-center">
                     <div 
                       className="bg-white shadow-lg"
                       style={{ transform: `scale(${zoomLevel / 100})`, transformOrigin: 'top center' }}
                     >
-                      {/* PDF.js will be integrated here */}
-                      <iframe
-                        src={pdfUrl}
-                        className="w-[595px] h-[842px] border-0"
-                        title="PDF Preview"
-                      />
+                      {/* Render based on format */}
+                      {currentFormat === 'pdf' && pdfUrl && (
+                        <iframe
+                          src={pdfUrl}
+                          className="w-[595px] h-[842px] border-0"
+                          title="PDF Preview"
+                        />
+                      )}
+                      
+                      {currentFormat === 'svg' && svgUrl && (
+                        <div className="w-[595px] h-[842px] flex items-center justify-center p-8">
+                          {svgUrl.startsWith('data:') ? (
+                            // Handle data URL for SVG
+                            <img
+                              src={svgUrl}
+                              alt="Feynman Diagram"
+                              className="max-w-full max-h-full object-contain"
+                            />
+                          ) : (
+                            // Handle regular URL for SVG
+                            <object
+                              data={svgUrl}
+                              type="image/svg+xml"
+                              className="max-w-full max-h-full"
+                              title="SVG Preview"
+                            >
+                              <img src={svgUrl} alt="Feynman Diagram" />
+                            </object>
+                          )}
+                        </div>
+                      )}
+                      
+                      {currentFormat === 'png' && pngUrl && (
+                        <div className="w-[595px] h-[842px] flex items-center justify-center p-8">
+                          <img
+                            src={pngUrl}
+                            alt="Feynman Diagram"
+                            className="max-w-full max-h-full object-contain"
+                          />
+                        </div>
+                      )}
+                      
+                      {/* Show error if no URL for selected format */}
+                      {!((currentFormat === 'pdf' && pdfUrl) || 
+                         (currentFormat === 'svg' && svgUrl) || 
+                         (currentFormat === 'png' && pngUrl)) && (
+                        <div className="w-[595px] h-[842px] flex items-center justify-center">
+                          <p className="text-neutral-500">
+                            No {currentFormat.toUpperCase()} preview available
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}

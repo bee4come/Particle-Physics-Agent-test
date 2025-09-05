@@ -5,6 +5,7 @@ import { LeftPromptPanel, RunParameters } from './LeftPromptPanel';
 import { CenterTabsPanel } from './CenterTabsPanel';
 import { RightInfoPanel } from './RightInfoPanel';
 import { useADKFinal } from '@/hooks/useADKFinal';
+import { extractFileUrls } from './ChatMessagesView';
 
 // Default run parameters
 const defaultParameters: RunParameters = {
@@ -132,6 +133,8 @@ function WorkbenchAppContent() {
   const [generatedContent, setGeneratedContent] = useState({
     pdfUrl: undefined as string | undefined,
     svgUrl: undefined as string | undefined,
+    pngUrl: undefined as string | undefined,
+    previewFormat: 'pdf' as 'pdf' | 'svg' | 'png',
     tikzCode: '',
     latexCode: '',
     previewStatus: 'empty' as 'loading' | 'ready' | 'error' | 'empty'
@@ -217,17 +220,32 @@ function WorkbenchAppContent() {
     starred: false
   }));
 
-  // Update preview status based on workflow completion
+  // Update preview status and extract diagram URLs from messages
   React.useEffect(() => {
     if (isLoading) {
       setGeneratedContent(prev => ({ ...prev, previewStatus: 'loading' }));
     } else if (messages.length > 0 && messages[messages.length - 1].role === 'assistant') {
-      // Simulate successful generation
+      const lastMessage = messages[messages.length - 1];
+      const { fileUrls, hasDiagram } = extractFileUrls(lastMessage.content);
+      
+      // Extract TikZ code from message
+      const tikzMatch = lastMessage.content.match(/```(?:tikz|latex)?\n([\s\S]*?)```/);
+      const tikzCode = tikzMatch ? tikzMatch[1] : '';
+      
+      // Extract full LaTeX document
+      const latexMatch = lastMessage.content.match(/\\documentclass[\s\S]*?\\end\{document\}/);
+      const latexCode = latexMatch ? latexMatch[0] : '';
+      
       setGeneratedContent(prev => ({
         ...prev,
-        previewStatus: 'ready',
-        tikzCode: '% TikZ code would be generated here\n\\begin{tikzpicture}\n  % Feynman diagram code\n\\end{tikzpicture}',
-        latexCode: '\\documentclass{article}\n\\usepackage{tikz-feynman}\n\\begin{document}\n% Complete LaTeX document\n\\end{document}'
+        previewStatus: hasDiagram ? 'ready' : prev.previewStatus,
+        pdfUrl: fileUrls.pdf_url || prev.pdfUrl,
+        svgUrl: fileUrls.svg_url || prev.svgUrl,
+        pngUrl: fileUrls.png_url || prev.pngUrl,
+        tikzCode: tikzCode || prev.tikzCode,
+        latexCode: latexCode || prev.latexCode,
+        // Set format based on available URLs
+        previewFormat: fileUrls.svg_url ? 'svg' : fileUrls.png_url ? 'png' : 'pdf'
       }));
     } else if (error) {
       setGeneratedContent(prev => ({ ...prev, previewStatus: 'error' }));
@@ -266,6 +284,8 @@ function WorkbenchAppContent() {
             onTabChange={(tab) => setWorkbenchState(prev => ({ ...prev, activeTab: tab }))}
             pdfUrl={generatedContent.pdfUrl}
             svgUrl={generatedContent.svgUrl}
+            pngUrl={generatedContent.pngUrl}
+            previewFormat={generatedContent.previewFormat}
             previewStatus={generatedContent.previewStatus}
             tikzCode={generatedContent.tikzCode}
             latexCode={generatedContent.latexCode}
