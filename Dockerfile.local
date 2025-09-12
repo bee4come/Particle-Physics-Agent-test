@@ -1,7 +1,13 @@
-# FeynmanCraft ADK Google Cloud Run Dockerfile
-# Optimized for LaTeX compilation with TikZ-Feynman support
+# Local Development Dockerfile for FeynmanCraft ADK
+# Optimized for fast local testing with LaTeX support
 
 FROM python:3.11-slim
+
+# Build argument for API key
+ARG GOOGLE_API_KEY
+ENV GOOGLE_API_KEY=${GOOGLE_API_KEY}
+
+# Proxy settings (configured via build args)
 
 # Set working directory
 WORKDIR /app
@@ -22,12 +28,10 @@ RUN apt-get update && apt-get install -y \
     texlive-science \
     texlive-luatex \
     texlive-fonts-recommended \
-    texlive-fonts-extra \
     # Conversion tools for multi-format output
     pdf2svg \
     poppler-utils \
     ghostscript \
-    imagemagick \
     # Cleanup
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
@@ -48,21 +52,17 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-# Copy the agent code and data
+# Copy the agent code
 COPY feynmancraft_adk/ ./feynmancraft_adk/
-COPY frontend/ ./frontend/
-COPY start.sh ./
-COPY stop.sh ./
-COPY .env.example ./
 
-# Set environment variables
+# Set environment variables for local development
 ENV PYTHONPATH=/app
 ENV PYTHONUNBUFFERED=1
 ENV PORT=8000
 ENV HOST=0.0.0.0
 
-# Cloud Run specific environment variables
-ENV FEYNMANCRAFT_ADK_LOG_LEVEL=INFO
+# Local development specific settings
+ENV FEYNMANCRAFT_ADK_LOG_LEVEL=DEBUG
 ENV KB_MODE=local
 ENV DEFAULT_SEARCH_K=5
 
@@ -71,12 +71,7 @@ ENV LATEX_COMPILE_ENGINE=lualatex
 ENV LATEX_COMPILE_TIMEOUT=30
 ENV LATEX_OUTPUT_FORMATS=pdf,svg,png
 
-# Create non-root user for security
-RUN useradd --create-home --shell /bin/bash app && \
-    chown -R app:app /app
-USER app
-
-# Create temp directories for LaTeX compilation
+# Create directories for LaTeX compilation
 RUN mkdir -p /tmp/latex_compiler && \
     chmod 755 /tmp/latex_compiler
 

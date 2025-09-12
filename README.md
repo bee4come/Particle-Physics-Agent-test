@@ -2,7 +2,7 @@
 
 **Intelligent Multi-Agent TikZ Feynman Diagram Generation System** - Based on Google Agent Development Kit (ADK) v1.0.0
 
-![Version](https://img.shields.io/badge/version-1.0.0-brightgreen)
+![Version](https://img.shields.io/badge/version-0.3.4-brightgreen)
 ![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue)
 ![ADK](https://img.shields.io/badge/ADK-1.0.0-green)
 ![Python](https://img.shields.io/badge/python-3.9%2B-blue)
@@ -14,7 +14,7 @@ Particle Physics Agent is an **autonomous learning intelligent research assistan
 
 ### 🚀 Core Features
 
-- 🤖 **6-Agent Collaboration System**: Specialized agents working together intelligently
+- 🤖 **7-Agent Collaboration System**: Specialized agents working together intelligently
 - 📊 **Local Knowledge Base**: Vector search + keyword search hybrid retrieval
 - 🔬 **Physics Validation**: AI-powered physics consistency checking
 - 🌐 **Natural Language Processing**: Supports Chinese and English descriptions
@@ -42,14 +42,15 @@ TikZ Code Generation → AI Syntax Validation → Final Response Synthesis
 
 ## 🤖 Agent System
 
-### Core Agents (6)
+### Core Agents (7)
 
 1. **PlannerAgent** - Natural language parsing and task planning
 2. **KBRetrieverAgent** - Local vector search and keyword retrieval
 3. **PhysicsValidatorAgent** - MCP-enhanced physics correctness validation
 4. **DiagramGeneratorAgent** - TikZ-Feynman code generation expert
 5. **TikZValidatorAgent** - LaTeX compilation validation
-6. **FeedbackAgent** - Result aggregation and user feedback
+6. **DeepResearchAgent** - Advanced research using Google Search API
+7. **FeedbackAgent** - Result aggregation and user feedback
 
 ### MCP Tools Integration (20+ tools)
 
@@ -234,9 +235,10 @@ Please generate a Feynman diagram for electron-positron annihilation producing t
 1. 📋 **PlannerAgent** - Parse natural language and create execution plan
 2. 📚 **KBRetrieverAgent** - Search relevant TikZ examples
 3. 🔬 **PhysicsValidatorAgent** - Validate physics correctness using MCP tools
-4. 🎨 **DiagramGeneratorAgent** - Generate TikZ code
-5. ✅ **TikZValidatorAgent** - LaTeX compilation validation
-6. 📝 **FeedbackAgent** - Synthesize final response
+4. 🔍 **DeepResearchAgent** - Perform advanced research if needed
+5. 🎨 **DiagramGeneratorAgent** - Generate TikZ code
+6. ✅ **TikZValidatorAgent** - LaTeX compilation validation
+7. 📝 **FeedbackAgent** - Synthesize final response
 
 ### Testing
 
@@ -270,10 +272,11 @@ Particle-Physics-Agent/
 │   │   ├── feynman_kb.json        # Local knowledge base
 │   │   ├── pprules.json           # Physics rules data
 │   │   └── embeddings/            # Vector embedding cache
-│   ├── sub_agents/            # 6 core agent implementations
+│   ├── sub_agents/            # 7 core agent implementations
 │   │   ├── planner_agent.py           # Natural language parsing and planning
 │   │   ├── kb_retriever_agent.py      # Knowledge base retrieval
 │   │   ├── physics_validator_agent.py # MCP-enhanced physics validation
+│   │   ├── deep_research_agent.py     # Advanced research using Google Search API
 │   │   ├── diagram_generator_agent.py # TikZ code generation
 │   │   ├── tikz_validator_agent.py    # LaTeX compilation validation
 │   │   └── feedback_agent.py          # Result aggregation and feedback
@@ -284,6 +287,8 @@ Particle-Physics-Agent/
 │   ├── integrations/           # External service integrations
 │   │   └── mcp/                   # MCP tools integration
 │   │       ├── mcp_client.py          # MCP client
+│   │       ├── latex_mcp_client.py    # LaTeX MCP client for remote compilation
+│   │       ├── latex_stdio_mcp_client.py # LaTeX stdio MCP client
 │   │       ├── mcp_config.json        # MCP configuration
 │   │       └── particle_name_mappings.py # Particle name mappings
 │   ├── tools/                 # Tool functions
@@ -299,7 +304,7 @@ Particle-Physics-Agent/
 │   │   │   ├── data_loader.py         # Physics data loader
 │   │   │   └── embedding_manager.py   # Physics embedding manager
 │   │   ├── integrations/          # Integration tool interfaces (directly uses ../integrations/mcp)
-│   │   └── latex_compiler.py      # LaTeX compiler
+│   │   └── latex_compiler.py      # Local LaTeX compiler with multi-format support
 │   ├── docs/                  # Project documentation
 │   │   ├── AGENT_TREE.md          # Agent architecture documentation
 │   │   └── bigquery_setup.md      # BigQuery setup guide (unused)
@@ -324,7 +329,7 @@ Particle-Physics-Agent/
 
 ### Core Frameworks
 - **Google ADK 1.0.0** - Multi-agent orchestration framework
-- **Google Gemini** - Language model (gemini-2.0-flash)
+- **Google Gemini** - Language models (gemini-2.5-flash primary, gemini-2.5-pro for complex tasks)
 - **MCP (Model Context Protocol)** - Enhanced tool communication protocol
 - **Pydantic** - Data validation and serialization
 
@@ -381,12 +386,14 @@ This hackathon project demonstrates:
 2. **Local Knowledge Base**: Fast vector search with 150+ physics examples
 3. **Smart Error Detection**: Intelligent syntax and physics consistency checking
 4. **Educational Output**: Provides clear explanations and suggestions
+5. **LaTeX Compilation**: Local and remote MCP compilation with multi-format output
 
 ### Multi-Agent Architecture
-1. **Intelligent Collaboration**: Six specialized agents working together
+1. **Intelligent Collaboration**: Seven specialized agents working together
 2. **Natural Language Processing**: Supports both Chinese and English
 3. **Quality Assurance**: Multiple validation layers ensure accuracy
-4. **Streamlined Workflow**: Optimized for hackathon demonstration
+4. **Advanced Research**: Deep research capabilities for complex physics queries
+5. **Streamlined Workflow**: Optimized for comprehensive diagram generation
 
 ## 📄 License
 

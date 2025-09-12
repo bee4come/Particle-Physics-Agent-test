@@ -1,0 +1,38 @@
+# Docker Compose for Local Development
+version: '3.8'
+
+services:
+  feynmancraft-adk:
+    build:
+      context: .
+      dockerfile: Dockerfile.local
+      args:
+        GOOGLE_API_KEY: ${GOOGLE_API_KEY}
+    container_name: feynmancraft-adk-local
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONPATH=/app
+      - PYTHONUNBUFFERED=1
+      - FEYNMANCRAFT_ADK_LOG_LEVEL=DEBUG
+      - KB_MODE=local
+      - DEFAULT_SEARCH_K=5
+      - LATEX_COMPILE_ENGINE=lualatex
+      - LATEX_OUTPUT_FORMATS=pdf,svg,png
+      # API key is passed via build arg and set in image
+    volumes:
+      # Mount logs directory for easy access
+      - ./logs:/app/logs
+      # Optional: Mount data directory for development
+      - ./feynmancraft_adk/data:/app/feynmancraft_adk/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+networks:
+  default:
+    name: feynmancraft-local

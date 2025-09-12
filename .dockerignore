@@ -56,22 +56,50 @@ tmp/
 temp/
 *.tmp
 
-# Documentation (not needed in container)
+# Documentation (not needed in container, except LaTeX setup guide)
 *.md
+!LATEX_SETUP.md
 docs/
 
-# Scripts (not needed in container)
+# Scripts (keep deployment scripts)
 scripts/
+!deploy-cloudrun.sh
+!cloudbuild.yaml
 
 # Test files
 tests/
 *_test.py
 test_*.py
 
-# Development files
-.env.example
+# Development files  
 docker-compose.yml
 Makefile
+
+# Local development and testing files
+current_session.json
+debug_*.py
+debug_*.js
+quick_test_*
+*_test.html
+sse_client_test.html
+mcp_compile_client.html
+test-mcp-integration.html
+
+# LaTeX compilation artifacts (will be generated at runtime)
+*.pdf
+*.svg
+*.png
+*.aux
+*.fdb_latexmk
+*.fls
+*.synctex.gz
+
+# Experimental and local config
+experimental/
+.kiro/
+.claude/
+.playwright-mcp/
+VERSION
 
 # Large data files that should be downloaded at runtime
 # (keep essential data files in feynmancraft_adk/data/)
