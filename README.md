@@ -243,6 +243,12 @@ Please generate a Feynman diagram for electron-positron annihilation producing t
 ### Testing
 
 ```bash
+# Run all tests using the test runner
+python test/run_all_tests.py
+
+# Run specific test
+python test/demo_simplified_integration.py
+
 # Run backend tests
 pytest
 
@@ -251,6 +257,11 @@ curl -X POST http://localhost:8000/run \
   -H "Content-Type: application/json" \
   -d '{"query": "Generate Feynman diagram for electron-positron annihilation"}'
 ```
+
+**Test Organization:**
+- All test files are organized in the `test/` directory
+- Includes Python tests, HTML clients, and demo files
+- See `test/README.md` for detailed test documentation
 
 ## 📊 Project Structure
 
@@ -312,7 +323,17 @@ Particle-Physics-Agent/
 │       ├── build_local_index.py   # Build local index
 │       ├── upload_to_bigquery.py  # Upload to BigQuery (unused)
 │       └── release.py             # Release script
-├── requirements.txt           # Python dependencies
+├── experimental/              # Experimental features and MCP servers
+│   ├── latex_mcp/                 # LaTeX MCP server
+│   └── particlephysics_mcp/       # ParticlePhysics MCP server (single source of truth)
+├── test/                      # All test files (organized)
+│   ├── README.md                  # Test documentation
+│   ├── run_all_tests.py           # Test runner script
+│   ├── test_*.py                  # Python test files
+│   ├── demo_*.py                  # Demo and example files
+│   └── *.html                     # HTML test clients
+├── frontend/                  # React frontend application
+├── logs/                      # Application logs
 ├── scripts/                   # Build and deployment scripts
 │   └── build-and-test.sh         # Docker build and test pipeline
 ├── docker-compose.yml         # Docker orchestration configuration

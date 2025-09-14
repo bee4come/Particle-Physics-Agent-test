@@ -8,6 +8,13 @@ import asyncio
 import random
 import time
 import logging
+import sys
+from pathlib import Path
+
+# Add the project root to Python path (one level up since we're in test/)
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
+
 from feynmancraft_adk.tool_metrics import tool_measurement, get_dashboard_data
 
 logging.basicConfig(level=logging.INFO)

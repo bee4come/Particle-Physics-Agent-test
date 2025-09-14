@@ -234,12 +234,13 @@ export const useADKEnhanced = () => {
         // Try to get additional server info
         let serverInfo = {};
         try {
-          const mcpResponse = await fetch('http://localhost:8002/health');
+          // Check LaTeX MCP server (port 8003) - ParticlePhysics MCP uses stdio, no HTTP endpoint
+          const mcpResponse = await fetch('http://localhost:8003/health');
           if (mcpResponse.ok) {
             const mcpInfo = await mcpResponse.json();
             serverInfo = {
-              edition: mcpInfo.edition || 'Unknown',
-              uptime: mcpInfo.uptime_sec || 0,
+              edition: 'FeynmanCraft ADK',
+              uptime: 0, // Not tracked for stdio MCP
               tools_count: Array.isArray(mcpInfo.tools) ? mcpInfo.tools.length : 0,
               cors_status: 'OK'
             };

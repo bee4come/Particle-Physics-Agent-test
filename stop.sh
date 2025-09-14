@@ -100,10 +100,41 @@ stop_services() {
         print_warning "未找到前端 PID 文件"
     fi
     
+    # 停止 LaTeX MCP 服务
+    if [ -f "logs/mcp_latex.pid" ]; then
+        local latex_mcp_pid=$(cat logs/mcp_latex.pid)
+        if [ -n "$latex_mcp_pid" ] && kill -0 $latex_mcp_pid 2>/dev/null; then
+            print_info "停止 LaTeX MCP 服务 (PID: $latex_mcp_pid)..."
+            kill $latex_mcp_pid 2>/dev/null || true
+            
+            # 等待进程停止
+            local count=0
+            while [ $count -lt 5 ] && kill -0 $latex_mcp_pid 2>/dev/null; do
+                sleep 1
+                count=$((count + 1))
+            done
+            
+            # 如果进程仍然存在，强制杀死
+            if kill -0 $latex_mcp_pid 2>/dev/null; then
+                kill -9 $latex_mcp_pid 2>/dev/null || true
+            fi
+            
+            print_success "LaTeX MCP 服务已停止"
+            stopped_any=true
+        else
+            print_warning "LaTeX MCP 进程不存在或已停止"
+        fi
+        rm -f logs/mcp_latex.pid
+    else
+        print_info "未找到 LaTeX MCP PID 文件"
+    fi
+    
     # 额外清理：使用进程名杀死可能遗漏的进程
     print_info "清理可能遗漏的进程..."
     pkill -f "adk web" 2>/dev/null || true
     pkill -f "npm run dev" 2>/dev/null || true
+    pkill -f "experimental.latex_mcp.server" 2>/dev/null || true
+    pkill -f "particlephysics_mcp_server" 2>/dev/null || true
     
     # 记录停止事件
     log_stop_event
@@ -135,6 +166,15 @@ check_ports() {
         print_info "如需强制清理，请运行: lsof -ti :5173 | xargs kill -9"
     else
         print_success "端口 5173 已释放"
+    fi
+    
+    # 检查端口 8003 (LaTeX MCP)
+    if lsof -i :8003 >/dev/null 2>&1; then
+        print_warning "端口 8003 仍被占用："
+        lsof -i :8003 | head -5
+        print_info "如需强制清理，请运行: lsof -ti :8003 | xargs kill -9"
+    else
+        print_success "端口 8003 已释放"
     fi
 }
 

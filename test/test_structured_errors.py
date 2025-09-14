@@ -5,6 +5,13 @@ Test script for structured error handling system
 
 import asyncio
 import logging
+import sys
+from pathlib import Path
+
+# Add the project root to Python path (one level up since we're in test/)
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
+
 from feynmancraft_adk.error_handler import (
     handle_mcp_error, 
     handle_tikz_error,

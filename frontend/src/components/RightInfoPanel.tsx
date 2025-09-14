@@ -369,7 +369,7 @@ export function RightInfoPanel({
                         <div className="h-2 w-2 bg-green-400 rounded-full"></div>
                         <span className="font-medium">ParticlePhysics MCP Server</span>
                       </div>
-                      <p className="text-sm text-neutral-300">Running on port 8002</p>
+                      <p className="text-sm text-neutral-300">LaTeX MCP on port 8003</p>
                       <p className="text-xs text-neutral-400 mt-1">HTTP API integration active</p>
                     </div>
                     

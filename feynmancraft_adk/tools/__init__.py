@@ -19,7 +19,6 @@ This module provides a unified interface for all tools used by the agents,
 organized into categories:
 - KB (Knowledge Base): Embedding, search, and retrieval tools
 - Physics: Particle data and physics validation tools
-- Integrations: Third-party integrations like MCP
 """
 
 # Knowledge Base tools
@@ -105,15 +104,13 @@ from .physics.physics_tools import (
     parse_natural_language_physics,
 )
 
-# MCP integration tools
-from .integrations import (
-    search_particle_mcp,
-    get_particle_properties_mcp,
-    validate_quantum_numbers_mcp,
-    get_branching_fractions_mcp,
-    compare_particles_mcp,
-    convert_units_mcp,
-    check_particle_properties_mcp,
+# Experimental physics tools (enhanced capabilities)
+from .physics.experimental_physics_tools import (
+    search_particle_experimental_enhanced,
+    get_particle_decays_experimental,
+    validate_particle_experimental,
+    search_particles_for_agent,
+    get_particle_interaction_info,
 )
 
 # LaTeX compilation tools removed - using prompt-based validation
@@ -179,13 +176,9 @@ __all__ = [
     # Natural language processing
     "parse_natural_language_physics",
     
-    # MCP integration tools
-    "search_particle_mcp",
-    "get_particle_properties_mcp",
-    "validate_quantum_numbers_mcp",
-    "get_branching_fractions_mcp",
-    "compare_particles_mcp",
-    "convert_units_mcp",
-    "check_particle_properties_mcp",
+    # Agent search integration with experimental MCP
+    "enhanced_agent_search_with_particle_info",
+    "quick_particle_validation_for_agent",
+    "get_diagram_relevant_particle_info",
     
 ]

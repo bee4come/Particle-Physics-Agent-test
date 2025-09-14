@@ -553,7 +553,7 @@ Database: PDG 2025 edition
                   </span>
                 </div>
                 <p className="text-sm" style={{ color: 'rgb(var(--text-secondary))', marginBottom: 'var(--space-xs)' }}>
-                  Running on port 8002
+                  LaTeX MCP on port 8003
                 </p>
                 <p className="text-xs" style={{ color: 'rgb(var(--text-tertiary))' }}>
                   HTTP API integration active

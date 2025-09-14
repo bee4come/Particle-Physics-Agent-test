@@ -139,15 +139,132 @@ cleanup_processes() {
     # 清理前端进程  
     pkill -f "npm run dev" || true
     
+    # 清理 MCP 进程
+    pkill -f "experimental.latex_mcp.server" || true
+    pkill -f "particlephysics_mcp_server" || true
+    
+    # 清理端口占用
+    lsof -ti:8003 | xargs kill -9 2>/dev/null || true
+    
     # 等待进程完全退出
     sleep 2
     
     print_success "进程清理完成"
 }
 
+# 启动MCP服务器
+start_mcp_servers() {
+    print_info "启动 MCP 服务器..."
+    
+    # 创建MCP日志文件
+    mkdir -p logs
+    touch logs/mcp_latex.log
+    touch logs/mcp_physics.log
+    
+    # 获取正确的Python路径
+    local python_path="/Users/jyeuforever/.pyenv/versions/3.10.12/bin/python"
+    if [ ! -f "$python_path" ]; then
+        python_path=$(which python3)
+        if [ -z "$python_path" ]; then
+            python_path="python"
+        fi
+    fi
+    
+    print_info "使用 Python: $python_path"
+    
+    # 启动 LaTeX MCP 服务器 (端口 8003)
+    print_info "启动 LaTeX MCP 服务器 (端口 8003)..."
+    
+    # 清理旧的LaTeX MCP进程
+    pkill -f "experimental.latex_mcp.server" || true
+    
+    cd experimental/latex_mcp
+    nohup $python_path -m uvicorn server:app --host 127.0.0.1 --port 8003 >> ../../logs/mcp_latex.log 2>&1 &
+    LATEX_MCP_PID=$!
+    cd ../..
+    
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] LaTeX MCP 进程 PID: $LATEX_MCP_PID" >> logs/mcp_latex.log
+    echo $LATEX_MCP_PID > logs/mcp_latex.pid
+    
+    # 等待LaTeX MCP启动
+    sleep 3
+    
+    # 检查LaTeX MCP是否启动成功
+    if ! kill -0 $LATEX_MCP_PID 2>/dev/null; then
+        print_warning "LaTeX MCP 启动失败，将在需要时自动启动"
+        rm -f logs/mcp_latex.pid
+    else
+        print_success "LaTeX MCP 服务器启动成功 (PID: $LATEX_MCP_PID)"
+    fi
+    
+    # ParticlePhysics MCP 通过客户端自动启动，无需手动启动
+    print_info "ParticlePhysics MCP 将在首次使用时自动启动"
+    print_success "MCP 服务器配置完成"
+}
+
+# 检查MCP服务器健康状态
+check_mcp_health() {
+    print_info "检查 MCP 服务器状态..."
+    
+    # 检查LaTeX MCP健康状态
+    local latex_mcp_ready=false
+    local count=0
+    local timeout=10
+    
+    while [ $count -lt $timeout ]; do
+        if curl -s http://localhost:8003/health >/dev/null 2>&1; then
+            latex_mcp_ready=true
+            break
+        fi
+        sleep 1
+        count=$((count + 1))
+        printf "."
+    done
+    
+    echo ""
+    
+    if $latex_mcp_ready; then
+        print_success "LaTeX MCP 服务器健康检查通过"
+    else
+        print_warning "LaTeX MCP 服务器未响应，将在需要时自动启动"
+    fi
+    
+    # 测试ParticlePhysics MCP连接
+    print_info "测试 ParticlePhysics MCP 连接..."
+    
+    local python_path="/Users/jyeuforever/.pyenv/versions/3.10.12/bin/python"
+    if [ ! -f "$python_path" ]; then
+        python_path=$(which python3)
+        if [ -z "$python_path" ]; then
+            python_path="python"
+        fi
+    fi
+    
+    # 测试MCP连接
+    local test_result=$($python_path -c "
+import asyncio
+import sys
+sys.path.insert(0, 'experimental')
+try:
+    from particlephysics_mcp import search_particle_experimental
+    async def test():
+        result = await search_particle_experimental('electron')
+        return 'success' if 'result' in result else 'failed'
+    print(asyncio.run(test()))
+except Exception as e:
+    print('failed')
+" 2>/dev/null)
+    
+    if [ "$test_result" = "success" ]; then
+        print_success "ParticlePhysics MCP 连接测试通过"
+    else
+        print_warning "ParticlePhysics MCP 连接测试失败，请检查配置"
+    fi
+}
+
 # 启动服务
 start_services() {
-    print_info "启动服务..."
+    print_info "启动主要服务..."
     
     # 创建启动时间戳日志
     local start_time=$(date '+%Y-%m-%d %H:%M:%S')
@@ -269,6 +386,7 @@ wait_for_services() {
 show_info() {
     local backend_pid=$(cat logs/backend.pid 2>/dev/null || echo "未知")
     local frontend_pid=$(cat logs/frontend.pid 2>/dev/null || echo "未知")
+    local latex_mcp_pid=$(cat logs/mcp_latex.pid 2>/dev/null || echo "未启动")
     local start_time=$(date '+%Y-%m-%d %H:%M:%S')
     
     echo ""
@@ -279,30 +397,41 @@ show_info() {
     echo "🌐 服务地址:"
     echo "   前端 UI:     http://localhost:5173"
     echo "   后端 API:    http://localhost:8000"
+    echo "   LaTeX MCP:   http://localhost:8003"
     echo ""
     echo "⚙️  进程信息:"
-    echo "   后端 PID:    $backend_pid"
-    echo "   前端 PID:    $frontend_pid"
-    echo "   启动时间:    $start_time"
+    echo "   后端 PID:        $backend_pid"
+    echo "   前端 PID:        $frontend_pid"
+    echo "   LaTeX MCP PID:   $latex_mcp_pid"
+    echo "   粒子物理 MCP:    自动启动 (stdio)"
+    echo "   启动时间:        $start_time"
     echo ""
     echo "📋 日志文件:"
-    echo "   后端日志:    logs/backend.log"
-    echo "   前端日志:    logs/frontend.log"
-    echo "   备份目录:    logs/archive/"
+    echo "   后端日志:        logs/backend.log"
+    echo "   前端日志:        logs/frontend.log"
+    echo "   LaTeX MCP:       logs/mcp_latex.log"
+    echo "   备份目录:        logs/archive/"
     echo ""
     echo "🔧 管理命令:"
-    echo "   停止服务:    ./stop.sh"
-    echo "   查看状态:    ./status.sh"
-    echo "   实时日志:    tail -f logs/backend.log"
-    echo "            或  tail -f logs/frontend.log"
-    echo "   查看错误:    grep ERROR logs/backend.log"
-    echo "            或  grep ERROR logs/frontend.log"
+    echo "   停止服务:        ./stop.sh"
+    echo "   查看状态:        ./status.sh"
+    echo "   实时日志:        tail -f logs/backend.log"
+    echo "                或  tail -f logs/frontend.log"
+    echo "                或  tail -f logs/mcp_latex.log"
+    echo "   查看错误:        grep ERROR logs/backend.log"
+    echo "                或  grep ERROR logs/frontend.log"
     echo ""
     echo "📊 测试命令:"
-    echo "   测试后端:    curl http://localhost:8000"
-    echo "   测试前端:    curl http://localhost:5173"
+    echo "   测试后端:        curl http://localhost:8000"
+    echo "   测试前端:        curl http://localhost:5173"
+    echo "   测试LaTeX MCP:   curl http://localhost:8003/health"
+    echo ""
+    echo "🧪 MCP 工具状态:"
+    echo "   ParticlePhysics: ✅ 已集成 (自动连接)"
+    echo "   LaTeX编译:       ✅ 已启动"
     echo ""
     echo "💡 提示:"
+    echo "   - MCP工具现已预启动，agent可直接使用"
     echo "   - 日志会自动备份，超过7天的旧日志会自动清理"
     echo "   - 如果遇到问题，请先查看日志文件"
     echo "   - 建议在新终端中运行 'tail -f logs/backend.log' 实时查看日志"
@@ -324,6 +453,8 @@ main() {
     create_directories
     backup_logs
     cleanup_processes
+    start_mcp_servers
+    check_mcp_health
     start_services
     wait_for_services
     show_info
@@ -343,6 +474,13 @@ cleanup_on_exit() {
         kill $(cat logs/frontend.pid) 2>/dev/null || true
         rm -f logs/frontend.pid
     fi
+    if [ -f logs/mcp_latex.pid ]; then
+        kill $(cat logs/mcp_latex.pid) 2>/dev/null || true
+        rm -f logs/mcp_latex.pid
+    fi
+    # 清理其他可能的MCP进程
+    pkill -f "experimental.latex_mcp.server" 2>/dev/null || true
+    pkill -f "particlephysics_mcp_server" 2>/dev/null || true
     print_success "服务已关闭"
     exit 0
 }

@@ -1,11 +1,7 @@
-"""
-MCP (Model Context Protocol) Integration Module
-Contains ParticlePhysics MCP Server client for external server communication
-"""
+"""MCP integrations for FeynmanCraft ADK."""
 
-from .mcp_client import (
-    ParticlePhysicsMCPClient,
-    get_mcp_client,
+from .latex_stdio_mcp_client import compile_tikz_mcp
+from .particlephysics_mcp_client import (
     search_particle_mcp,
     get_particle_properties_mcp,
     validate_quantum_numbers_mcp,
@@ -15,28 +11,13 @@ from .mcp_client import (
     check_particle_properties_mcp
 )
 
-from .particle_name_mappings import (
-    PARTICLE_NAME_MAPPINGS,
-    BASIC_MAPPINGS,
-    normalize_particle_name,
-    get_antiparticle_name
-)
-
 __all__ = [
-    # MCP Client
-    'ParticlePhysicsMCPClient',
-    'get_mcp_client',
+    'compile_tikz_mcp',
     'search_particle_mcp',
-    'get_particle_properties_mcp', 
+    'get_particle_properties_mcp',
     'validate_quantum_numbers_mcp',
     'get_branching_fractions_mcp',
     'compare_particles_mcp',
     'convert_units_mcp',
-    'check_particle_properties_mcp',
-    
-    # Particle Name Mappings
-    'PARTICLE_NAME_MAPPINGS',
-    'BASIC_MAPPINGS',
-    'normalize_particle_name',
-    'get_antiparticle_name'
-] 
+    'check_particle_properties_mcp'
+]

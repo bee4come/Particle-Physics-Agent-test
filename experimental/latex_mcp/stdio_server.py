@@ -175,6 +175,7 @@ class StdioMCPServer:
                     }
                 
                 return {
+                    "success": True,
                     "status": "ok",
                     "errors": [error.dict() for error in compile_result.errors],
                     "warnings": [warning.dict() for warning in compile_result.warnings],
@@ -187,6 +188,7 @@ class StdioMCPServer:
                 }
             else:
                 return {
+                    "success": False,
                     "status": "error",
                     "errors": [error.dict() for error in compile_result.errors],
                     "warnings": [warning.dict() for warning in compile_result.warnings],
@@ -199,6 +201,7 @@ class StdioMCPServer:
         except Exception as e:
             logger.error(f"LaTeX compilation error: {e}")
             return {
+                "success": False,
                 "status": "error", 
                 "errors": [{"message": f"Compilation error: {str(e)}"}],
                 "warnings": [],

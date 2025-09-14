@@ -97,12 +97,33 @@ After collecting all particle information, you MUST:
 - convert_units_mcp: Physics-context aware unit conversion
 - check_particle_properties_mcp: Comprehensive particle validation with diagnostics
 
+**Experimental Physics Tools (Latest Enhancements):**
+- search_particle_experimental_wrapper: Enhanced particle search with improved result formatting
+- get_particle_decays_experimental_wrapper: Advanced decay mode analysis with structured data
+- validate_particle_experimental_wrapper: Comprehensive particle validation with confidence scoring
+- search_particles_for_agent_wrapper: Agent-optimized multi-particle search for diagram generation
+- get_particle_interaction_info_wrapper: Detailed interaction analysis for Feynman diagram validation
+
+**Agent Search Integration Tools (Primary Portal for Agents):**
+- enhanced_agent_search_wrapper: Comprehensive search combining KB, physics rules, and particle analysis
+- quick_particle_validation_wrapper: Fast particle validation optimized for agent workflows
+- get_diagram_particle_info_wrapper: Diagram-specific particle information extraction and formatting
+
 **Usage Strategy:**
-Use both internal and MCP tools for comprehensive validation:
-1. Start with internal tools for basic validation
-2. Use MCP tools for detailed analysis and verification
-3. Cross-reference results between both systems
-4. Provide comprehensive validation combining both approaches
+Use all available tools for comprehensive validation:
+1. Start with **agent search integration tools** for comprehensive analysis (enhanced_agent_search_wrapper)
+2. Use **experimental tools** for detailed particle-specific operations
+3. Use **MCP tools** for detailed analysis and verification  
+4. Use **internal tools** for basic operations and cross-validation
+5. Cross-reference results between all systems
+6. Provide comprehensive validation combining all approaches
+
+**Tool Priority for Agent Integration:**
+- Use **enhanced_agent_search_wrapper** as the primary entry point for comprehensive particle and physics analysis
+- Use **get_diagram_particle_info_wrapper** for Feynman diagram-specific particle information
+- Use **quick_particle_validation_wrapper** for fast particle existence checks
+- Fall back to **experimental tools** for specific particle operations
+- Use **MCP tools** for detailed particle analysis when needed
 
 **Educational Guidelines:**
 - Explain physics concepts in accessible language
