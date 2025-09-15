@@ -762,10 +762,106 @@
       "title": "Inflation",
       "content": "Exponential expansion at t ~ 10⁻³⁵ s solves horizon and flatness problems; seeds near-scale-invariant CMB.",
       "category": "Beyond Standard Model"
+    },
+    {
+      "rule_number": 107,
+      "title": "Color charge conservation (SU(3)_C)",
+      "content": "Strong interactions conserve color charge: ∑ T^a = 0 for all QCD vertices. Quarks carry color (r,g,b), antiquarks carry anticolor (r̄,ḡ,b̄), gluons carry color-anticolor combinations.",
+      "category": "Conservation Laws",
+      "computational": true,
+      "formula": "∑_quarks T^a_i = ∑_antiquarks T^a_j for each color index a = 1,2,...,8"
+    },
+    {
+      "rule_number": 108,
+      "title": "B-L conservation in electroweak theory",
+      "content": "Baryon number minus Lepton number (B-L) is conserved in Standard Model interactions. B-L violation may occur in GUT models or Majorana neutrino mass generation.",
+      "category": "Conservation Laws",
+      "computational": true,
+      "formula": "Δ(B-L) = 0 for SM processes; ∑_i (B_i - L_i)_initial = ∑_f (B_f - L_f)_final"
+    },
+    {
+      "rule_number": 109,
+      "title": "Hypercharge conservation (electroweak)",
+      "content": "Weak hypercharge Y = 2(Q - T₃) is conserved in electroweak interactions. Related to U(1)_Y gauge symmetry before electroweak symmetry breaking.",
+      "category": "Conservation Laws",
+      "computational": true,
+      "formula": "∑ Y_i = constant; Y = 2(Q - T₃) where Q is electric charge, T₃ is weak isospin"
+    },
+    {
+      "rule_number": 110,
+      "title": "Strangeness conservation",
+      "content": "Strangeness S is conserved in strong and electromagnetic interactions but violated in weak interactions by ΔS = ±1 rule.",
+      "category": "Conservation Laws",
+      "computational": true,
+      "formula": "ΔS = 0 (strong, EM); |ΔS| = 1 (weak); S = -(n_s - n_s̄)"
+    },
+    {
+      "rule_number": 111,
+      "title": "Charm conservation",
+      "content": "Charm quantum number C is conserved in strong and electromagnetic interactions. Weak interactions allow ΔC = ±1 transitions.",
+      "category": "Conservation Laws",
+      "computational": true,
+      "formula": "ΔC = 0 (strong, EM); |ΔC| = 1 (weak); C = n_c - n_c̄"
+    },
+    {
+      "rule_number": 112,
+      "title": "Bottom (beauty) conservation",
+      "content": "Bottom quantum number B' is conserved in strong and electromagnetic interactions. Weak interactions allow ΔB' = ±1 transitions.",
+      "category": "Conservation Laws",
+      "computational": true,
+      "formula": "ΔB' = 0 (strong, EM); |ΔB'| = 1 (weak); B' = n_b - n_b̄"
+    },
+    {
+      "rule_number": 113,
+      "title": "Top conservation",
+      "content": "Top quantum number T' would be conserved in strong and electromagnetic interactions, but top quark lifetime (τ ≈ 5×10⁻²⁵ s) is shorter than QCD hadronization time, preventing bound state formation.",
+      "category": "Conservation Laws",
+      "computational": true,
+      "formula": "ΔT' = 0 (strong, EM); τ_t << τ_QCD ≈ 10⁻²³ s"
+    },
+    {
+      "rule_number": 114,
+      "title": "Isospin conservation",
+      "content": "Isospin I is approximately conserved in strong interactions (exact in isospin limit m_u = m_d). Electromagnetic and weak interactions violate isospin.",
+      "category": "Conservation Laws",
+      "computational": true,
+      "formula": "ΔI = 0 (strong, approximate); |ΔI| ≤ 1 (EM); |ΔI| ≤ 3/2 (weak)"
+    },
+    {
+      "rule_number": 115,
+      "title": "G-parity conservation",
+      "content": "G-parity G = C·(-1)^I is conserved in strong interactions for systems without net quark number. Important for π-π scattering and ρ-meson decays.",
+      "category": "Conservation Laws",
+      "computational": true,
+      "formula": "G = C·(-1)^I; ΔG = 0 (strong interactions)"
+    },
+    {
+      "rule_number": 116,
+      "title": "R-parity conservation (SUSY)",
+      "content": "R-parity R_p = (-1)^(3(B-L)+2S) is conserved in MSSM, ensuring lightest supersymmetric particle (LSP) stability and preventing rapid proton decay.",
+      "category": "Conservation Laws",
+      "computational": true,
+      "formula": "R_p = (-1)^(3(B-L)+2S); R_p = +1 (SM particles), R_p = -1 (sparticles)"
+    },
+    {
+      "rule_number": 117,
+      "title": "Individual lepton number conservation",
+      "content": "Electron (L_e), muon (L_μ), and tau (L_τ) lepton numbers are separately conserved in Standard Model. Neutrino oscillations violate individual lepton number conservation.",
+      "category": "Conservation Laws",
+      "computational": true,
+      "formula": "ΔL_e = ΔL_μ = ΔL_τ = 0 (SM); violated by ν oscillations with Δm²_ij ≠ 0"
+    },
+    {
+      "rule_number": 118,
+      "title": "Chiral charge conservation",
+      "content": "Left-handed (L) and right-handed (R) fermion numbers are separately conserved in massless limit. Mass terms mix chiralities: ψ̄_L ψ_R + h.c.",
+      "category": "Conservation Laws",
+      "computational": true,
+      "formula": "∂_μ j^5_μ = 2im ψ̄ γ⁵ ψ; j^5_μ = ψ̄ γ_μ γ⁵ ψ (axial current)"
     }
   ],
   "validation_fields": {
-    "conservation_laws": ["energy", "momentum", "charge", "lepton number", "baryon number", "strangeness", "charm", "bottom", "top"],
+    "conservation_laws": ["energy", "momentum", "charge", "lepton number", "baryon number", "strangeness", "charm", "bottom", "top", "color charge", "B-L", "hypercharge", "isospin", "G-parity", "R-parity", "individual lepton numbers", "chiral charge"],
     "fundamental_constants": {
       "fine_structure_constant": "α ≈ 1/137",
       "fermi_constant": "G_F = 1.166×10⁻⁵ GeV⁻²",

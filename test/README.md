@@ -21,6 +21,10 @@ This directory contains all test files for the Particle Physics Agent project.
 - **`quick_test_metrics.py`** - Quick metrics validation tests
 - **`test_structured_errors.py`** - Tests for structured error handling
 
+#### Agent Tests
+- **`test_physics_validator.py`** - Comprehensive test suite for the Physics Validator Agent
+- **`test_physics_validator_simple.py`** - Simple validation tests that don't require API keys
+
 ### HTML Test Clients
 
 #### MCP Integration Tests
@@ -85,7 +89,9 @@ Most tests require:
 
 ## Notes
 
-- Tests are designed to be run from the project root directory
+- Tests are designed to be run from the test directory: `cd test && python test_name.py`
 - Some tests may show PDG import warnings but still function correctly
 - HTML test files can be opened in a browser for manual testing
 - All tests use the experimental ParticlePhysics MCP as the single source of truth
+- Physics Validator tests verify the updated conservation laws database (118 rules total)
+- Simple tests (like `test_physics_validator_simple.py`) don't require API keys or embeddings

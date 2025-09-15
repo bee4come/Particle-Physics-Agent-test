@@ -15,14 +15,19 @@
 """
 Physics Validator Agent for FeynmanCraft ADK.
 
-This agent acts as a coordinator for physics validation. It receives a physics process,
-finds relevant rules from a JSON database via semantic search, and orchestrates validation.
-For rules requiring computation, it delegates to specialized tools.
+This agent acts as a focused physics rule validator. It receives a physics process,
+gets particle data from the ParticlePhysics MCP server, then validates the process
+against physics rules in the pprules.json database using semantic search.
 
-Enhanced with ParticlePhysics MCP Server tools for comprehensive particle data validation.
+The agent workflow:
+1. Parse natural language physics query to extract particles and processes
+2. Use ParticlePhysics MCP to get detailed particle information
+3. Search pprules.json for relevant physics rules
+4. Validate the process against the identified rules
+5. Return a comprehensive validation report
 
-This agent has been refactored to use the centralized tools module for all data loading,
-embedding management, search functionality, and physics validation tools.
+This is a streamlined version focused on rule validation rather than
+comprehensive particle analysis.
 """
 
 import logging
@@ -41,42 +46,10 @@ from ..tools.physics.search import (
     validate_process_against_rules
 )
 
-# Import physics tools for enhanced particle validation
-from ..tools.physics import (
-    search_particle,
-    get_particle_properties,
-    validate_quantum_numbers,
-    get_branching_fractions,
-    compare_particles,
-    convert_units,
-    check_particle_properties,
-)
-
-# Import natural language physics parsing
-from ..tools.physics.physics_tools import (
-    parse_natural_language_physics
-)
-
-# Import agent search integration tools for comprehensive particle physics validation
-from ..integrations import (
-    enhanced_agent_search_with_particle_info,
-    quick_particle_validation_for_agent,
-    get_diagram_relevant_particle_info,
-)
-
-# Import experimental MCP tools
+# Import experimental MCP tools for particle data retrieval
 from experimental.particlephysics_mcp import (
     search_particle_experimental,
     list_decays_experimental
-)
-
-# Import experimental physics tools for enhanced validation
-from ..tools.physics.experimental_physics_tools import (
-    search_particle_experimental_enhanced,
-    get_particle_decays_experimental,
-    validate_particle_experimental,
-    search_particles_for_agent,
-    get_particle_interaction_info
 )
 
 # Import agent search integration for comprehensive particle analysis
@@ -165,17 +138,43 @@ def validate_process_wrapper(process_description: str, particles: str) -> Dict[s
 
 def parse_natural_language_physics_wrapper(query: str) -> Dict[str, Any]:
     """
-    Wrapper for parsing natural language physics queries.
+    Simple wrapper for parsing physics queries - focuses on extracting particles and processes.
     
     Args:
         query: Natural language physics query
         
     Returns:
-        Parsed physics information
+        Parsed physics information focusing on particles and processes
     """
     try:
-        result = parse_natural_language_physics(query)
-        return result
+        # Simple extraction of particles and processes from query
+        # This is a simplified version that focuses on what we need for rule validation
+        import re
+        
+        # Extract common particle names
+        particle_patterns = [
+            r'\b(electron|positron|muon|tau|neutrino)\b',
+            r'\b(photon|gamma|gluon)\b',
+            r'\b(proton|neutron|pion|kaon)\b',
+            r'\b(quark|up|down|strange|charm|bottom|top)\b',
+            r'\b(W|Z|Higgs)\s*boson\b',
+            r'\b[a-zA-Z]+\+\b|\b[a-zA-Z]+\-\b'  # charged particles
+        ]
+        
+        particles = []
+        for pattern in particle_patterns:
+            matches = re.findall(pattern, query, re.IGNORECASE)
+            particles.extend(matches)
+        
+        # Extract process indicators
+        process_indicators = re.findall(r'\b(decay|scattering|annihilation|production|emission|absorption)\b', query, re.IGNORECASE)
+        
+        return {
+            'status': 'success',
+            'particles': list(set(particles)),
+            'processes': list(set(process_indicators)),
+            'original_query': query
+        }
     except Exception as e:
         logger.error(f"Error in parse_natural_language_physics_wrapper: {e}")
         return {
@@ -185,10 +184,9 @@ def parse_natural_language_physics_wrapper(query: str) -> Dict[str, Any]:
         }
 
 
-# --- Experimental MCP Tool Wrappers ---
-# These wrappers handle async calls for experimental MCP tools
+# --- MCP Tool Wrappers for Particle Data Retrieval ---
 
-async def search_particle_experimental_wrapper(query: str, max_results: int = 5) -> Dict[str, Any]:
+async def search_particle_experimental_wrapper(query: str) -> Dict[str, Any]:
     """Wrapper for experimental MCP particle search."""
     try:
         return await search_particle_experimental(query)
@@ -206,229 +204,26 @@ async def list_decays_experimental_wrapper(particle_name: str) -> Dict[str, Any]
         return {"error": str(e), "status": "failed"}
 
 
-async def search_particle_mcp_wrapper(query: str, max_results: int = 5) -> Dict[str, Any]:
-    """Wrapper for experimental MCP particle search."""
-    try:
-        return await search_particle_experimental(query)
-    except Exception as e:
-        logger.error(f"Experimental MCP search_particle failed: {e}")
-        return {"error": str(e), "status": "failed"}
-
-
-async def get_particle_properties_mcp_wrapper(particle_name: str, units_preference: str = "GeV") -> Dict[str, Any]:
-    """Wrapper for experimental MCP particle properties."""
-    try:
-        return await search_particle_experimental(particle_name)
-    except Exception as e:
-        logger.error(f"Experimental get_particle_properties failed: {e}")
-        return {"error": str(e), "status": "failed"}
-
-
-async def validate_quantum_numbers_mcp_wrapper(particle_name: str) -> Dict[str, Any]:
-    """Wrapper for experimental particle search to provide quantum number validation."""
-    try:
-        result = await search_particle_experimental(particle_name)
-        # The experimental server provides particle information that can be used for validation
-        if "error" in result:
-            return {"valid": False, "error": result["error"]}
-        return {"valid": True, "particle_info": result}
-    except Exception as e:
-        logger.error(f"Experimental quantum number validation failed: {e}")
-        return {"error": str(e), "status": "failed"}
-
-
-async def get_branching_fractions_mcp_wrapper(particle_name: str, limit: int = 10) -> Dict[str, Any]:
-    """Wrapper for experimental MCP branching fractions using decay list."""
-    try:
-        return await list_decays_experimental(particle_name)
-    except Exception as e:
-        logger.error(f"Experimental get_branching_fractions failed: {e}")
-        return {"error": str(e), "status": "failed"}
-
-
-async def compare_particles_mcp_wrapper(particle_names: str, properties: str = "mass,charge,spin") -> Dict[str, Any]:
-    """Wrapper for experimental particle comparison."""
-    try:
-        particle_list = [p.strip() for p in particle_names.split(',')]
-        results = []
-        for particle in particle_list:
-            result = await search_particle_experimental(particle)
-            results.append({"particle": particle, "info": result})
-        return {"comparison": results}
-    except Exception as e:
-        logger.error(f"Experimental compare_particles failed: {e}")
-        return {"error": str(e), "status": "failed"}
-
-
-async def convert_units_mcp_wrapper(value: float, from_units: str, to_units: str) -> Dict[str, Any]:
-    """Wrapper for unit conversion (simplified for experimental version)."""
-    try:
-        # Basic unit conversion logic - can be enhanced later
-        return {"converted_value": value, "from_units": from_units, "to_units": to_units, "note": "Basic conversion"}
-    except Exception as e:
-        logger.error(f"Unit conversion failed: {e}")
-        return {"error": str(e), "status": "failed"}
-
-
-async def check_particle_properties_mcp_wrapper(particle_name: str) -> Dict[str, Any]:
-    """Wrapper for experimental particle property check."""
-    try:
-        return await search_particle_experimental(particle_name)
-    except Exception as e:
-        logger.error(f"Experimental check_particle_properties failed: {e}")
-        return {"error": str(e), "status": "failed"}
-
-
-# --- Agent Search Integration Wrappers ---
-
-async def enhanced_agent_search_wrapper(query: str, particles: str = "", max_kb_results: int = 5) -> Dict[str, Any]:
-    """Wrapper for enhanced agent search with particle info."""
-    try:
-        particle_list = [p.strip() for p in particles.split(',')] if particles else None
-        return await enhanced_agent_search_with_particle_info(query, particle_list, max_kb_results)
-    except Exception as e:
-        logger.error(f"Enhanced agent search failed: {e}")
-        return {"error": str(e), "status": "failed"}
-
-
-async def quick_particle_validation_wrapper(particles: str) -> Dict[str, Any]:
-    """Wrapper for quick particle validation."""
-    try:
-        particle_list = [p.strip() for p in particles.split(',')]
-        return await quick_particle_validation_for_agent(particle_list)
-    except Exception as e:
-        logger.error(f"Quick particle validation failed: {e}")
-        return {"error": str(e), "status": "failed"}
-
-
-async def get_diagram_particle_info_wrapper(particles: str) -> Dict[str, Any]:
-    """Wrapper for diagram-relevant particle info."""
-    try:
-        particle_list = [p.strip() for p in particles.split(',')]
-        return await get_diagram_relevant_particle_info(particle_list)
-    except Exception as e:
-        logger.error(f"Diagram particle info extraction failed: {e}")
-        return {"error": str(e), "status": "failed"}
-
-
-async def get_particle_decays_experimental_wrapper(particle_name: str, limit: int = 10) -> Dict[str, Any]:
-    """Wrapper for experimental particle decay analysis."""
-    try:
-        return await get_particle_decays_experimental(particle_name, limit=limit)
-    except Exception as e:
-        logger.error(f"Experimental decay analysis failed: {e}")
-        return {"error": str(e), "status": "failed"}
-
-
-async def validate_particle_experimental_wrapper(particle_name: str) -> Dict[str, Any]:
-    """Wrapper for experimental particle validation."""
-    try:
-        return await validate_particle_experimental(particle_name)
-    except Exception as e:
-        logger.error(f"Experimental particle validation failed: {e}")
-        return {"error": str(e), "status": "failed"}
-
-
-async def search_particles_for_agent_wrapper(particles_str: str) -> Dict[str, Any]:
-    """Wrapper for agent-optimized particle search with multiple particles."""
-    try:
-        particles = [p.strip() for p in particles_str.split(',')]
-        return await search_particles_for_agent(particles)
-    except Exception as e:
-        logger.error(f"Agent particle search failed: {e}")
-        return {"error": str(e), "status": "failed"}
-
-
-async def get_particle_interaction_info_wrapper(particles_str: str) -> Dict[str, Any]:
-    """Wrapper for particle interaction information analysis."""
-    try:
-        particles = [p.strip() for p in particles_str.split(',')]
-        return await get_particle_interaction_info(particles)
-    except Exception as e:
-        logger.error(f"Particle interaction info failed: {e}")
-        return {"error": str(e), "status": "failed"}
-
-
-# --- Agent Search Integration Wrappers ---
-
-async def enhanced_agent_search_wrapper(query: str, particles_str: str = "", max_kb_results: int = 5, max_physics_rules: int = 5) -> Dict[str, Any]:
-    """Wrapper for enhanced agent search with particle information integration."""
-    try:
-        particles = [p.strip() for p in particles_str.split(',') if p.strip()] if particles_str else None
-        return await enhanced_agent_search_with_particle_info(
-            query=query,
-            particles=particles,
-            max_kb_results=max_kb_results,
-            max_physics_rules=max_physics_rules
-        )
-    except Exception as e:
-        logger.error(f"Enhanced agent search failed: {e}")
-        return {"error": str(e), "status": "failed"}
-
-
-async def quick_particle_validation_wrapper(particles_str: str) -> Dict[str, Any]:
-    """Wrapper for quick particle validation optimized for agent workflows."""
-    try:
-        particles = [p.strip() for p in particles_str.split(',') if p.strip()]
-        return await quick_particle_validation_for_agent(particles)
-    except Exception as e:
-        logger.error(f"Quick particle validation failed: {e}")
-        return {"error": str(e), "status": "failed"}
-
-
-async def get_diagram_particle_info_wrapper(particles_str: str) -> Dict[str, Any]:
-    """Wrapper for getting diagram-relevant particle information."""
-    try:
-        particles = [p.strip() for p in particles_str.split(',') if p.strip()]
-        return await get_diagram_relevant_particle_info(particles)
-    except Exception as e:
-        logger.error(f"Diagram particle info extraction failed: {e}")
-        return {"error": str(e), "status": "failed"}
-
-
 # --- Agent Definition ---
 
 PhysicsValidatorAgent = Agent(
     model=PHYSICS_VALIDATOR_MODEL,  # Use gemini-2.5-pro for complex physics validation
     name="physics_validator_agent",
-    description="Validates physics processes using comprehensive particle physics tools, MCP tools, and natural language processing. Uses centralized tools for all validation operations.",
+    description="Validates physics processes using particle data from MCP and physics rules from pprules.json. Focused on rule validation after particle data retrieval.",
     instruction=PHYSICS_VALIDATOR_AGENT_PROMPT,
     output_key="physics_validation_report",  # State management: outputs to state.physics_validation_report
     tools=[
-        # Physics rules search tools
+        # Physics rules search tools - core functionality for validation
         search_physics_rules_wrapper,
         search_rules_by_particles_wrapper,
         search_rules_by_process_wrapper,
         validate_process_wrapper,
         
-        # Internal physics tools (these already use MCP internally)
-        search_particle,
-        get_particle_properties,
-        validate_quantum_numbers,
-        get_branching_fractions,
-        compare_particles,
-        convert_units,
-        check_particle_properties,
-        
-        # Experimental MCP physics tools with proper wrappers
-        search_particle_mcp_wrapper,
-        get_particle_properties_mcp_wrapper,
-        validate_quantum_numbers_mcp_wrapper,
-        get_branching_fractions_mcp_wrapper,
-        compare_particles_mcp_wrapper,
-        convert_units_mcp_wrapper,
-        check_particle_properties_mcp_wrapper,
-        
-        # Experimental physics tools with enhanced capabilities
+        # MCP tools for particle data retrieval
         search_particle_experimental_wrapper,
         list_decays_experimental_wrapper,
         
-        # Agent search integration tools (primary particle portal for agents)
-        enhanced_agent_search_wrapper,
-        quick_particle_validation_wrapper,
-        get_diagram_particle_info_wrapper,
-        
-        # Natural language processing tools
+        # Simple natural language processing for query parsing
         parse_natural_language_physics_wrapper,
     ],
 )
