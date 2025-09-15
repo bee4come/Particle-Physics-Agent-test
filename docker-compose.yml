@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  feynmancraft:
+    build: .
+    ports:
+      - "8080:8080"    # Cloud Run main port
+      - "8000:8000"    # Backend API
+      - "5173:5173"    # Frontend dev server
+      - "3000:3000"    # Additional frontend port
+      - "9229:9229"    # Node.js debug port
+    environment:
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - FEYNMANCRAFT_ADK_LOG_LEVEL=DEBUG
+      - KB_MODE=local
+      - DEFAULT_SEARCH_K=5
+      - LATEX_COMPILE_ENGINE=lualatex
+      - LATEX_COMPILE_TIMEOUT=30
+      - LATEX_OUTPUT_FORMATS=pdf,svg,png
+      - PORT=8080
+      - BACKEND_PORT=8000
+      - FRONTEND_PORT=5173
+      - HOST=0.0.0.0
+    volumes:
+      - ./logs:/app/logs
+      - /tmp:/tmp
+    env_file:
+      - .env
+    networks:
+      - feynmancraft-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+networks:
+  feynmancraft-net:
+    driver: bridge

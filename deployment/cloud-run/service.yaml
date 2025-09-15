@@ -1,0 +1,88 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: feynmancraft-adk
+  annotations:
+    run.googleapis.com/ingress: all
+    run.googleapis.com/execution-environment: gen2
+spec:
+  template:
+    metadata:
+      annotations:
+        run.googleapis.com/cpu-throttling: "false"
+        run.googleapis.com/memory: "4Gi"
+        run.googleapis.com/cpu: "2"
+        run.googleapis.com/execution-environment: gen2
+        run.googleapis.com/max-scale: "10"
+        run.googleapis.com/min-scale: "1"
+    spec:
+      containerConcurrency: 100
+      timeoutSeconds: 300
+      containers:
+      - image: gcr.io/PROJECT_ID/feynmancraft-adk:latest
+        ports:
+        - name: http1
+          containerPort: 8080
+        - name: backend
+          containerPort: 8000
+        - name: frontend
+          containerPort: 5173
+        - name: debug
+          containerPort: 9229
+        env:
+        - name: PORT
+          value: "8080"
+        - name: BACKEND_PORT
+          value: "8000"
+        - name: FRONTEND_PORT
+          value: "5173"
+        - name: HOST
+          value: "0.0.0.0"
+        - name: GOOGLE_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: feynmancraft-secrets
+              key: google-api-key
+        - name: FEYNMANCRAFT_ADK_LOG_LEVEL
+          value: "INFO"
+        - name: KB_MODE
+          value: "local"
+        - name: DEFAULT_SEARCH_K
+          value: "5"
+        - name: LATEX_COMPILE_ENGINE
+          value: "lualatex"
+        - name: LATEX_COMPILE_TIMEOUT
+          value: "30"
+        - name: LATEX_OUTPUT_FORMATS
+          value: "pdf,svg,png"
+        - name: NODE_ENV
+          value: "production"
+        resources:
+          limits:
+            cpu: 2000m
+            memory: 4Gi
+          requests:
+            cpu: 1000m
+            memory: 2Gi
+        startupProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
