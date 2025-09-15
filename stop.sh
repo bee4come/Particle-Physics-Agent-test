@@ -159,13 +159,13 @@ check_ports() {
         print_success "端口 8000 已释放"
     fi
     
-    # 检查端口 5173 (前端)
-    if lsof -i :5173 >/dev/null 2>&1; then
-        print_warning "端口 5173 仍被占用："
-        lsof -i :5173 | head -5
-        print_info "如需强制清理，请运行: lsof -ti :5173 | xargs kill -9"
+    # 检查端口 5174 (前端)
+    if lsof -i :5174 >/dev/null 2>&1; then
+        print_warning "端口 5174 仍被占用："
+        lsof -i :5174 | head -5
+        print_info "如需强制清理，请运行: lsof -ti :5174 | xargs kill -9"
     else
-        print_success "端口 5173 已释放"
+        print_success "端口 5174 已释放"
     fi
     
     # 检查端口 8003 (LaTeX MCP)

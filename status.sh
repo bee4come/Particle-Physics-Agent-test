@@ -199,14 +199,14 @@ main_status_check() {
     # 端口状态
     echo "🌐 端口状态:"
     check_port_status "8000" "后端"
-    check_port_status "5173" "前端"
+    check_port_status "5174" "前端"
     
     echo ""
     
     # 网络连接状态
     echo "🔗 网络连接:"
     check_network_status "http://localhost:8000" "后端 API"
-    check_network_status "http://localhost:5173" "前端 UI"
+    check_network_status "http://localhost:5174" "前端 UI"
     
     # 系统资源
     get_system_resources
@@ -231,7 +231,7 @@ main_status_check() {
         print_success "✅ 所有服务运行正常"
         echo ""
         echo "🌐 访问地址:"
-        echo "   前端 UI: http://localhost:5173"
+        echo "   前端 UI: http://localhost:5174"
         echo "   后端 API: http://localhost:8000"
     elif [ "$backend_running" = true ] || [ "$frontend_running" = true ]; then
         print_warning "⚠️  部分服务未运行"

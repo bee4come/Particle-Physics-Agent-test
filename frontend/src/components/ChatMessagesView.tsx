@@ -102,6 +102,15 @@ const extractFileInfo = (content: string) => {
     }
   }
 
+  // Debug logging
+  if (fileIds.length > 0 || Object.keys(fileUrls).length > 0) {
+    console.log('[DiagramPreview Debug] Extracted file info:', {
+      fileIds,
+      fileUrls,
+      content: content.substring(0, 200) + '...'
+    });
+  }
+
   return {
     fileIds,
     fileUrls,
@@ -300,13 +309,40 @@ const AiMessageBubble: React.FC<AiMessageBubbleProps> = ({
         {messageContent}
       </ReactMarkdown>
       
-      {/* Display diagram preview if file info is detected */}
-      {hasDiagram && (
+      {/* Display inline PNG image if available */}
+      {hasDiagram && fileUrls.png_url && (
+        <div className="mt-4">
+          <div className="border border-neutral-600 rounded-lg overflow-hidden bg-white p-4 flex items-center justify-center">
+            <img
+              src={fileUrls.png_url}
+              alt="Generated Feynman Diagram"
+              className="max-w-full h-auto"
+              style={{ maxHeight: '400px' }}
+              onError={(e) => {
+                console.error('Failed to load inline PNG:', fileUrls.png_url);
+                (e.target as HTMLImageElement).style.display = 'none';
+              }}
+            />
+          </div>
+          {/* Keep the original DiagramPreview for format selection and downloads */}
+          <div className="mt-2 border border-neutral-600 rounded-lg overflow-hidden">
+            <DiagramPreview
+              fileId={fileIds[0] || ""}
+              fileUrls={fileUrls}
+              compilationStatus="ok"
+              className="w-full"
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Display diagram preview only if no PNG available for inline display */}
+      {hasDiagram && !fileUrls.png_url && (
         <div className="mt-4 border border-neutral-600 rounded-lg overflow-hidden">
           <DiagramPreview
             fileId={fileIds[0] || ""}
             fileUrls={fileUrls}
-            compilationStatus="success"
+            compilationStatus="ok"
             className="w-full"
           />
         </div>
@@ -340,6 +376,9 @@ interface ChatMessagesViewProps {
   liveActivityEvents: ProcessedEvent[];
   historicalActivities: Record<string, ProcessedEvent[]>;
 }
+
+// Export the function for use in other components
+export { extractFileInfo as extractFileUrls };
 
 export function ChatMessagesView({
   messages,

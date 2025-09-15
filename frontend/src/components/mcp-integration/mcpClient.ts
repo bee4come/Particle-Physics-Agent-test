@@ -46,8 +46,8 @@ export interface MCPClientConfig {
   circuitBreakerTimeout?: number;
 }
 
-const ORIGIN = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5173';
-const ENDPOINT = "http://localhost:8003/mcp";
+const ORIGIN = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5174';
+const ENDPOINT = "/latex-mcp/mcp";
 const DEFAULT_TIMEOUT = 12_000;
 const DEFAULT_MAX_RETRIES = 2;
 const DEFAULT_RETRY_DELAY = 1000;

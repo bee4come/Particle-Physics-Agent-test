@@ -77,7 +77,7 @@ cp .env.example .env
 # 2. One-click launch all services
 ./start.sh
 
-# 3. Visit http://localhost:5173 to start using!
+# 3. Visit http://localhost:5174 to start using!
 ```
 
 ### 🔧 Script Management
@@ -127,7 +127,7 @@ grep ERROR logs/backend.log
 
 # If ports are occupied
 lsof -i :8000  # Check backend port
-lsof -i :5173  # Check frontend port
+lsof -i :5174  # Check frontend port
 
 # Force cleanup (if needed)
 pkill -f "adk web"
@@ -190,7 +190,7 @@ pkill -f "npm run dev"
    npm run dev
    ```
    
-   Access the application at `http://localhost:5173/app/` (or the port shown in terminal)
+   Access the application at `http://localhost:5174/app/` (or the port shown in terminal)
    
    **Option B: Backend Only**
    ```bash

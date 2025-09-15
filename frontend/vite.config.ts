@@ -13,6 +13,7 @@ export default defineConfig({
     },
   },
   server: {
+    port: 5174,
     proxy: {
       // Proxy ADK API requests to the backend server
       "/list-apps": {
@@ -24,12 +25,18 @@ export default defineConfig({
         changeOrigin: true,
       },
       "/run": {
-        target: "http://127.0.0.1:8000", 
+        target: "http://127.0.0.1:8000",
         changeOrigin: true,
       },
       "/run_sse": {
         target: "http://127.0.0.1:8000",
         changeOrigin: true,
+      },
+      // Proxy LaTeX MCP requests to avoid CORS issues
+      "/latex-mcp": {
+        target: "http://127.0.0.1:8003",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/latex-mcp/, ""),
       },
     },
   },

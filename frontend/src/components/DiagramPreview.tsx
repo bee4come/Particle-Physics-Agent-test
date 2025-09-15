@@ -34,6 +34,13 @@ const DiagramPreview: React.FC<DiagramPreviewProps> = ({
   compilationStatus = "unknown",
   className = ""
 }) => {
+  // Debug logging
+  console.log('[DiagramPreview] Received props:', {
+    fileId,
+    fileUrls,
+    compilationStatus,
+    className
+  });
   const [selectedFormat, setSelectedFormat] = useState<string>('pdf');
   const [fileInfo, setFileInfo] = useState<FileInfo | null>(null);
   const [loading, setLoading] = useState(false);
@@ -196,7 +203,7 @@ const DiagramPreview: React.FC<DiagramPreviewProps> = ({
     }
   };
 
-  if (compilationStatus !== 'ok' && !fileId) {
+  if (compilationStatus !== 'ok' && !fileId && (!fileUrls || Object.keys(fileUrls).length === 0)) {
     return (
       <Card className={`w-full ${className}`}>
         <CardHeader>
@@ -227,8 +234,9 @@ const DiagramPreview: React.FC<DiagramPreviewProps> = ({
           <CardTitle className="flex items-center gap-2">
             <FileImage className="h-5 w-5" />
             Diagram Preview
+            <span className="text-xs bg-green-500 text-white px-2 py-1 rounded">RENDERING</span>
           </CardTitle>
-          
+
           {/* Format selector moved to content section */}
         </div>
         
@@ -270,12 +278,12 @@ const DiagramPreview: React.FC<DiagramPreviewProps> = ({
           </div>
         )}
         
-        {!loading && !error && fileInfo && (
+        {!loading && !error && (fileInfo || fileUrls) && (
           <div className="w-full">
             {/* Format Selector Section */}
             <div className="mb-4">
               <FormatSelector
-                availableFormats={fileInfo.available_formats}
+                availableFormats={fileInfo?.available_formats || ['pdf', 'svg', 'png']}
                 selectedFormat={selectedFormat}
                 onFormatChange={setSelectedFormat}
                 fileUrls={fileUrls}

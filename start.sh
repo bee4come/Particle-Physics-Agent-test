@@ -161,10 +161,10 @@ start_mcp_servers() {
     touch logs/mcp_latex.log
     touch logs/mcp_physics.log
     
-    # 获取正确的Python路径
-    local python_path="/Users/jyeuforever/.pyenv/versions/3.10.12/bin/python"
-    if [ ! -f "$python_path" ]; then
-        python_path=$(which python3)
+    # 获取当前Python路径（支持本地、conda、Docker环境）
+    local python_path=$(which python3)
+    if [ -z "$python_path" ]; then
+        python_path=$(which python)
         if [ -z "$python_path" ]; then
             python_path="python"
         fi
@@ -232,14 +232,14 @@ check_mcp_health() {
     # 测试ParticlePhysics MCP连接
     print_info "测试 ParticlePhysics MCP 连接..."
     
-    local python_path="/Users/jyeuforever/.pyenv/versions/3.10.12/bin/python"
-    if [ ! -f "$python_path" ]; then
-        python_path=$(which python3)
+    local python_path=$(which python3)
+    if [ -z "$python_path" ]; then
+        python_path=$(which python)
         if [ -z "$python_path" ]; then
             python_path="python"
         fi
     fi
-    
+
     # 测试MCP连接
     local test_result=$($python_path -c "
 import asyncio
@@ -302,7 +302,7 @@ start_services() {
     print_success "ADK Backend 启动成功 (PID: $BACKEND_PID)"
     
     # 启动前端服务
-    print_info "启动 Frontend (端口 5173)..."
+    print_info "启动 Frontend (端口 5174)..."
     
     # 在前端日志中记录启动信息
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] 启动前端命令: cd frontend && npm run dev" >> logs/frontend.log
@@ -353,8 +353,8 @@ wait_for_services() {
             backend_ready=true
         fi
         
-        if ! $frontend_ready && curl -s http://localhost:5173 >/dev/null 2>&1; then
-            print_success "前端服务就绪"  
+        if ! $frontend_ready && curl -s http://localhost:5174 >/dev/null 2>&1; then
+            print_success "前端服务就绪"
             frontend_ready=true
         fi
         
@@ -395,7 +395,7 @@ show_info() {
     echo "========================================="
     echo ""
     echo "🌐 服务地址:"
-    echo "   前端 UI:     http://localhost:5173"
+    echo "   前端 UI:     http://localhost:5174"
     echo "   后端 API:    http://localhost:8000"
     echo "   LaTeX MCP:   http://localhost:8003"
     echo ""
@@ -423,7 +423,7 @@ show_info() {
     echo ""
     echo "📊 测试命令:"
     echo "   测试后端:        curl http://localhost:8000"
-    echo "   测试前端:        curl http://localhost:5173"
+    echo "   测试前端:        curl http://localhost:5174"
     echo "   测试LaTeX MCP:   curl http://localhost:8003/health"
     echo ""
     echo "🧪 MCP 工具状态:"
@@ -459,7 +459,7 @@ main() {
     wait_for_services
     show_info
     
-    print_success "启动完成！请在浏览器中访问 http://localhost:5173"
+    print_success "启动完成！请在浏览器中访问 http://localhost:5174"
     echo ""
 }
 

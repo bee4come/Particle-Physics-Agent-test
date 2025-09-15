@@ -235,7 +235,7 @@ export const useADKEnhanced = () => {
         let serverInfo = {};
         try {
           // Check LaTeX MCP server (port 8003) - ParticlePhysics MCP uses stdio, no HTTP endpoint
-          const mcpResponse = await fetch('http://localhost:8003/health');
+          const mcpResponse = await fetch('/latex-mcp/health');
           if (mcpResponse.ok) {
             const mcpInfo = await mcpResponse.json();
             serverInfo = {

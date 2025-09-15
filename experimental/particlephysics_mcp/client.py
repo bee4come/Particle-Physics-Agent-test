@@ -56,8 +56,10 @@ class ExperimentalParticlePhysicsMCPClient:
                 server_path = Path(__file__).parent / "particlephysics_mcp_server"
                 
                 # Start the MCP server process using the experimental version
-                # Use the specific Python interpreter that has the required packages
-                python_path = "/Users/jyeuforever/.pyenv/versions/3.10.12/bin/python"
+                # Use the current Python interpreter (works in local, conda, and Docker environments)
+                import sys
+                python_path = sys.executable
+
                 cmd = [
                     python_path, "-m", "particlephysics_mcp_server"
                 ]

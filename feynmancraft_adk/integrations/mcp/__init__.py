@@ -1,6 +1,5 @@
 """MCP integrations for FeynmanCraft ADK."""
 
-from .latex_stdio_mcp_client import compile_tikz_mcp
 from .particlephysics_mcp_client import (
     search_particle_mcp,
     get_particle_properties_mcp,
@@ -12,7 +11,6 @@ from .particlephysics_mcp_client import (
 )
 
 __all__ = [
-    'compile_tikz_mcp',
     'search_particle_mcp',
     'get_particle_properties_mcp',
     'validate_quantum_numbers_mcp',
@@ -20,4 +18,4 @@ __all__ = [
     'compare_particles_mcp',
     'convert_units_mcp',
     'check_particle_properties_mcp'
-]
+] 

@@ -470,7 +470,7 @@ function HealthView({ recentErrors, mcpClient, formatTimestamp }: {
   useEffect(() => {
     const checkHealth = async () => {
       try {
-        const response = await fetch('http://localhost:8003/health');
+        const response = await fetch('/latex-mcp/health');
         const health = await response.json();
         setServerHealth(health);
       } catch (error) {

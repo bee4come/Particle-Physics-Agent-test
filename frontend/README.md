@@ -22,7 +22,7 @@ React-based web interface for the FeynmanCraft Particle Physics Agent system.
    ```
 
 4. **Open browser:**
-   - Frontend: http://localhost:5173
+   - Frontend: http://localhost:5174
    - Backend API: http://localhost:8000
 
 ## Features
