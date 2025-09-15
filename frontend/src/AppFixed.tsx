@@ -7,6 +7,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import ReactMarkdown from "react-markdown";
 import { CopyCheck, Copy, AlertCircle, User, Bot, RefreshCw, Server, WifiOff } from "lucide-react";
 import { AgentWorkflowEnhanced } from "@/components/AgentWorkflowEnhanced";
+import { FeynmanCraftWorkflow } from "@/components/FeynmanCraftWorkflow";
 import { LogPanelFixed } from "@/components/LogPanelFixed";
 import { ErrorCard, StructuredError, parseErrorFromMessage, ErrorAction } from "@/components/ErrorCard";
 import { ErrorCardPanel } from "@/components/ErrorCardPanel";
@@ -22,7 +23,7 @@ export default function AppFixed() {
   const [isLogPanelOpen, setIsLogPanelOpen] = useState(false);
   const [completedWorkflows, setCompletedWorkflows] = useState<Record<string, any>>({});
   const [shouldClearInput, setShouldClearInput] = useState(false);
-  const [rightPanelTab, setRightPanelTab] = useState<'agents' | 'logs' | 'versions' | 'recovery' | 'automation' | 'mcp' | 'dashboard'>('agents');
+  const [rightPanelTab, setRightPanelTab] = useState<'workflow' | 'logs'>('workflow');
 
   const { logs, logger, clearLogs, processADKEvents } = useBackendLogger();
   
@@ -283,7 +284,7 @@ Database: PDG 2025 edition
     );
   }
 
-  // Render welcome screen
+  // Render FeynmanCraft Workflow interface
   if (messages.length === 0) {
     return (
       <div className="flex h-screen bg-background text-foreground font-sans antialiased transition-all duration-200">
@@ -297,14 +298,89 @@ Database: PDG 2025 edition
           sseConnectionStatus={sseConnectionStatus}
           onCopyServerInfo={copyServerInfo}
         />
-        <main className="h-full w-full max-w-4xl mx-auto pt-14">
-          <WelcomeScreen
-            handleSubmit={handleSubmit}
-            isLoading={isLoading}
-            onCancel={handleCancel}
-            shouldClearInput={shouldClearInput}
-          />
-        </main>
+        <div className="flex flex-1" style={{ paddingTop: '56px' }}>
+          <main className="flex-1 overflow-y-auto">
+            <div className="max-w-6xl mx-auto p-6">
+              <FeynmanCraftWorkflow
+                events={processedEvents}
+                isLoading={isLoading}
+                isCompleted={false}
+                pollingStatus={pollingStatus}
+                onStop={handleCancel}
+                onSubmit={handleSubmit}
+              />
+            </div>
+          </main>
+
+          {/* Simplified Right Panel */}
+          <div className="w-80 border-l bg-card flex-shrink-0 overflow-hidden">
+            <div className="h-full flex flex-col">
+              <div className="flex border-b">
+                <button
+                  onClick={() => setRightPanelTab('workflow')}
+                  className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
+                    rightPanelTab === 'workflow'
+                      ? 'text-primary border-b-2 border-primary bg-primary/5'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  Workflow
+                </button>
+                <button
+                  onClick={() => setRightPanelTab('logs')}
+                  className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
+                    rightPanelTab === 'logs'
+                      ? 'text-primary border-b-2 border-primary bg-primary/5'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  Logs
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto">
+                {rightPanelTab === 'workflow' && (
+                  <div className="p-4 space-y-4">
+                    <div className="rounded-lg border p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className={`h-2 w-2 rounded-full ${
+                          connectionStatus.isConnected ? 'bg-green-500' : 'bg-red-500'
+                        }`}></div>
+                        <span className="text-sm font-medium">Connection Status</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {connectionStatus.isConnected ? 'Connected to ADK backend' : 'Disconnected'}
+                      </p>
+                    </div>
+
+                    {processedEvents.length > 0 && (
+                      <div className="rounded-lg border p-4">
+                        <h4 className="text-sm font-medium mb-2">Current Activity</h4>
+                        <div className="space-y-2">
+                          {processedEvents.slice(-3).map((event, index) => (
+                            <div key={index} className="text-xs text-muted-foreground">
+                              <span className="font-medium">{event.title}</span>
+                              <br />
+                              <span>{event.data.slice(0, 50)}...</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {rightPanelTab === 'logs' && (
+                  <LogPanelFixed
+                    logs={logs}
+                    onClearLogs={clearLogs}
+                    className="h-full"
+                  />
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -364,7 +440,7 @@ Database: PDG 2025 edition
       {/* Main content */}
       <div className="flex flex-1" style={{ paddingTop: '56px' }}>
         {/* Left side - Main chat area */}
-        <div className="flex flex-col flex-1 xl:pr-[24rem] min-w-0">
+        <div className="flex flex-col flex-1 xl:pr-80 min-w-0">
           <ScrollArea ref={scrollAreaRef} className="flex-1 overflow-y-auto scrollbar-themed">
             <div className="responsive-padding space-y-6 chat-width mx-auto" style={{ paddingTop: 'var(--space-lg)', paddingBottom: 'var(--space-lg)' }}>
               {messages.map((message, index) => {
@@ -500,139 +576,18 @@ Database: PDG 2025 edition
             </div>
           </div>
         </div>
-        
-        {/* Right side - Tabbed Panel */}
-        <div 
-          className="sidebar-width xl:w-96 border-l flex-shrink-0 xl:absolute xl:right-0 xl:h-full transition-all duration-200"
-          style={{ 
-            borderColor: 'rgb(var(--border-secondary))',
-            backgroundColor: 'rgb(var(--surface-primary))',
-            top: '56px',
-            height: 'calc(100vh - 56px)'
-          }}
-        >
-          <div className="h-full overflow-hidden flex flex-col">
-            {/* Tab Header */}
-            <div className="flex border-b transition-all duration-200" style={{ borderColor: 'rgb(var(--border-secondary))' }}>
-              <button
-                onClick={() => setRightPanelTab('mcp')}
-                className={`px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-all duration-200 flex-1 border-r ${rightPanelTab === 'mcp' ? 'text-foreground bg-accent' : ''}`}
-                style={{ 
-                  borderColor: 'rgb(var(--border-secondary))',
-                  borderBottom: rightPanelTab === 'mcp' ? '2px solid rgb(var(--interactive-primary))' : 'none'
-                }}
-              >
-                MCP Tools
-              </button>
-              <button
-                onClick={() => setRightPanelTab('dashboard')}
-                className={`px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-all duration-200 flex-1 ${rightPanelTab === 'dashboard' ? 'text-foreground bg-accent' : ''}`}
-                style={{ 
-                  borderBottom: rightPanelTab === 'dashboard' ? '2px solid rgb(var(--interactive-primary))' : 'none'
-                }}
-              >
-                Dashboard
-              </button>
+
+        {/* Simplified Right Panel for Chat History */}
+        <div className="w-80 border-l bg-card flex-shrink-0 xl:absolute xl:right-0 xl:h-full overflow-hidden"
+             style={{ top: '56px', height: 'calc(100vh - 56px)' }}>
+          <div className="h-full flex flex-col">
+            <div className="p-4 border-b">
+              <h3 className="font-medium text-foreground">Chat History</h3>
             </div>
-            
-            {/* Tab Content */}
-            <div className="flex-1 overflow-y-auto scrollbar-themed">
-              {rightPanelTab === 'mcp' && (
-                <div style={{ padding: 'var(--space-lg)' }}>
-                  <h3 className="text-lg font-semibold" style={{ color: 'rgb(var(--text-primary))', marginBottom: 'var(--space-xl)' }}>MCP Integration</h3>
-            
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)' }}>
-              <div className="unified-card" style={{ padding: 'var(--space-lg)' }}>
-                <div className="flex items-center" style={{ gap: 'var(--space-md)', marginBottom: 'var(--space-md)' }}>
-                  <div 
-                    className="h-3 w-3 rounded-full animate-pulse" 
-                    style={{ backgroundColor: 'rgb(var(--status-success))' }}
-                  ></div>
-                  <span className="font-medium" style={{ color: 'rgb(var(--text-primary))' }}>
-                    ParticlePhysics MCP Server
-                  </span>
-                </div>
-                <p className="text-sm" style={{ color: 'rgb(var(--text-secondary))', marginBottom: 'var(--space-xs)' }}>
-                  LaTeX MCP on port 8003
-                </p>
-                <p className="text-xs" style={{ color: 'rgb(var(--text-tertiary))' }}>
-                  HTTP API integration active
-                </p>
+            <div className="flex-1 overflow-y-auto p-4">
+              <div className="text-sm text-muted-foreground">
+                Chat messages will appear here once conversation starts.
               </div>
-              
-              <div className="unified-card" style={{ padding: 'var(--space-lg)' }}>
-                <div className="flex items-center" style={{ gap: 'var(--space-md)', marginBottom: 'var(--space-md)' }}>
-                  <div 
-                    className="h-3 w-3 rounded-full" 
-                    style={{ backgroundColor: 'rgb(var(--interactive-primary))' }}
-                  ></div>
-                  <span className="font-medium" style={{ color: 'rgb(var(--text-primary))' }}>
-                    ADK Backend Integration
-                  </span>
-                </div>
-                <p className="text-sm" style={{ color: 'rgb(var(--text-secondary))', marginBottom: 'var(--space-xs)' }}>
-                  Modified to use HTTP MCP client
-                </p>
-                <p className="text-xs" style={{ color: 'rgb(var(--text-tertiary))' }}>
-                  Fallback to subprocess if needed
-                </p>
-              </div>
-              
-              <div className="unified-card" style={{ padding: 'var(--space-lg)' }}>
-                <h4 className="font-medium" style={{ color: 'rgb(var(--text-primary))', marginBottom: 'var(--space-md)' }}>
-                  Available Tools
-                </h4>
-                <div className="grid grid-cols-1" style={{ gap: 'var(--space-sm)' }}>
-                  <div className="text-sm" style={{ color: 'rgb(var(--text-secondary))' }}>• search_particle</div>
-                  <div className="text-sm" style={{ color: 'rgb(var(--text-secondary))' }}>• get_property</div>
-                  <div className="text-sm" style={{ color: 'rgb(var(--text-secondary))' }}>• list_decays</div>
-                  <div className="text-sm" style={{ color: 'rgb(var(--text-secondary))' }}>• find_decays</div>
-                  <div className="text-sm" style={{ color: 'rgb(var(--text-secondary))' }}>• list_properties</div>
-                  <div className="text-sm" style={{ color: 'rgb(var(--text-secondary))' }}>• resolve_identifier</div>
-                  <div className="text-sm" style={{ color: 'rgb(var(--text-secondary))' }}>• database_info</div>
-                  <div className="text-sm" style={{ color: 'rgb(var(--text-secondary))' }}>• get_property_details</div>
-                </div>
-              </div>
-              
-              {processedEvents.length > 0 && (
-                <div className="unified-card" style={{ padding: 'var(--space-lg)' }}>
-                  <h4 className="font-medium" style={{ color: 'rgb(var(--text-primary))', marginBottom: 'var(--space-md)' }}>
-                    Recent Activity
-                  </h4>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
-                    {processedEvents.slice(-5).map((event, index) => (
-                      <div 
-                        key={index} 
-                        className="text-sm border-l-2" 
-                        style={{ 
-                          borderColor: 'rgb(var(--border-primary))', 
-                          paddingLeft: 'var(--space-md)'
-                        }}
-                      >
-                        <div className="font-medium overflow-safe" style={{ color: 'rgb(var(--text-primary))' }}>
-                          {event.title}
-                        </div>
-                        <div className="text-xs overflow-safe-multi" style={{ color: 'rgb(var(--text-secondary))', marginTop: 'var(--space-xs)' }}>
-                          {event.data}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-                </div>
-              )}
-              
-              {rightPanelTab === 'dashboard' && (
-                <div style={{ padding: 'var(--space-lg)' }}>
-                  <ToolOrchestrationDashboard 
-                    events={processedEvents}
-                    isLive={isLoading}
-                    onRefresh={() => window.location.reload()}
-                  />
-                </div>
-              )}
             </div>
           </div>
         </div>
